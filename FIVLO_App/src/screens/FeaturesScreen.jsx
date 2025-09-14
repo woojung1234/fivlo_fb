@@ -15,19 +15,14 @@ const FeaturesScreen = () => {
   const features = [
     { name: '포모도로', icon: 'hourglass-half', screen: 'Pomodoro' },
     { name: '망각방지', icon: 'bell', screen: 'Reminder' },
-    { name: '성장앨범', icon: 'camera', screen: 'GrowthAlbumTab' },
+    { name: '성장앨범', icon: 'camera', screen: 'GrowthAlbumCalendarView' },
     { name: '타임어택', icon: 'rocket', screen: 'TimeAttack' },
     { name: '목표설정', icon: 'bullseye', screen: 'RoutineSetting' },
     { name: '집중분석 그래프', icon: 'bar-chart', screen: 'AnalysisGraph' }, // AnalysisGraphScreen으로 연결
   ];
 
   const handleFeaturePress = (screenName) => {
-    if (screenName === 'GrowthAlbumTab') {
-      navigation.navigate('Main', { screen: screenName });
-    } else {
-      navigation.navigate(screenName);
-    }
-    Alert.alert('기능 이동', `${screenName} 화면으로 이동합니다.`);
+    navigation.navigate(screenName);
   };
 
   return (

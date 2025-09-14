@@ -1,175 +1,237 @@
-// src/screens/Album/GrowthAlbumCategoryView.jsx
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  FlatList,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-import React, { useState, useEffect } from 'react'; // useEffect 임포트 추가
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'; // ActivityIndicator, Alert 임포트 추가
-
-// 공통 스타일 및 컴포넌트 임포트
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
+import { GlobalStyles } from '../../styles/GlobalStyles';
+import Header from '../../components/common/Header';
 
-// API 서비스 임포트
-import { getGrowthAlbumCategory, getCategories } from '../../services/taskApi'; // getCategories도 필요
+const GrowthAlbumCategoryView = () => {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  
+  const [albumEntries, setAlbumEntries] = useState([]);
+  const [groupedEntries, setGroupedEntries] = useState({});
 
-const GrowthAlbumCategoryView = ({ isPremiumUser }) => { // isPremiumUser prop 받기
-  const [categories, setCategories] = useState([]); // 카테고리 목록
-  const [photosByCategory, setPhotosByCategory] = useState({}); // 카테고리별 사진 데이터
-  const [isLoading, setIsLoading] = useState(false);
-
-  // 데이터 로드
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const fetchedCategories = await getCategories(); // 카테고리 목록 조회
-      setCategories(fetchedCategories);
-
-      const allCategoryPhotos = {};
-      for (const category of fetchedCategories) {
-        const data = await getGrowthAlbumCategory(category.id); // 카테고리별 사진 조회
-        allCategoryPhotos[category.name] = data; // 카테고리 이름으로 저장
-      }
-      setPhotosByCategory(allCategoryPhotos);
-
-    } catch (error) {
-      console.error("Failed to fetch growth album category data:", error.response ? error.response.data : error.message);
-      Alert.alert('오류', '앨범 데이터를 불러오는데 실패했습니다.');
-      setCategories([]);
-      setPhotosByCategory({});
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 컴포넌트 마운트 시 데이터 로드
+  // 샘플 데이터
   useEffect(() => {
-    fetchData();
+    const sampleEntries = [
+      {
+        id: '1',
+        taskTitle: '운동하기',
+        categoryId: 'workout',
+        categoryName: 'WORKOUT',
+        imageUri: 'https://via.placeholder.com/150x150/4CAF50/FFFFFF?text=1',
+        memo: '오늘 1일차 끝!',
+        createdAt: '2024-07-05T10:00:00Z',
+      },
+      {
+        id: '2',
+        taskTitle: '운동하기',
+        categoryId: 'workout',
+        categoryName: 'WORKOUT',
+        imageUri: 'https://via.placeholder.com/150x150/4CAF50/FFFFFF?text=2',
+        memo: '2일차 완료!',
+        createdAt: '2024-07-06T10:00:00Z',
+      },
+      {
+        id: '3',
+        taskTitle: '운동하기',
+        categoryId: 'workout',
+        categoryName: 'WORKOUT',
+        imageUri: 'https://via.placeholder.com/150x150/4CAF50/FFFFFF?text=3',
+        memo: '3일차 달성!',
+        createdAt: '2024-07-07T10:00:00Z',
+      },
+      {
+        id: '4',
+        taskTitle: '독서하기',
+        categoryId: 'reading',
+        categoryName: 'Reading',
+        imageUri: 'https://via.placeholder.com/150x150/2196F3/FFFFFF?text=4',
+        memo: '책 한 권 완독!',
+        createdAt: '2024-07-09T15:00:00Z',
+      },
+      {
+        id: '5',
+        taskTitle: '독서하기',
+        categoryId: 'reading',
+        categoryName: 'Reading',
+        imageUri: 'https://via.placeholder.com/150x150/2196F3/FFFFFF?text=5',
+        memo: '두 번째 책 시작!',
+        createdAt: '2024-07-10T15:00:00Z',
+      },
+      {
+        id: '6',
+        taskTitle: '독서하기',
+        categoryId: 'reading',
+        categoryName: 'Reading',
+        imageUri: 'https://via.placeholder.com/150x150/2196F3/FFFFFF?text=6',
+        memo: '독서 습관 형성!',
+        createdAt: '2024-07-11T15:00:00Z',
+      },
+    ];
+
+    setAlbumEntries(sampleEntries);
+
+    // 카테고리별로 그룹화
+    const grouped = sampleEntries.reduce((acc, entry) => {
+      if (!acc[entry.categoryId]) {
+        acc[entry.categoryId] = {
+          categoryName: entry.categoryName,
+          entries: []
+        };
+      }
+      acc[entry.categoryId].entries.push(entry);
+      return acc;
+    }, {});
+
+    setGroupedEntries(grouped);
   }, []);
 
-
-  const renderPhotoThumbnail = ({ item }) => (
-    <TouchableOpacity style={styles.photoThumbnailContainer}>
-      <Image source={{ uri: item.photoUrl }} style={styles.photoThumbnail} /> {/* API 응답에 photoUrl 필드가 있다고 가정 */}
-      <Text style={styles.photoMemo}>{item.memo}</Text>
-    </TouchableOpacity>
-  );
-
-  const renderCategorySection = ({ item: category }) => (
-    <View style={styles.categorySection}>
-      <View style={[styles.categoryHeader, { backgroundColor: category.color || Colors.secondaryBrown }]}>
-        <Text style={styles.categoryTitle}>{category.name}</Text>
+  const renderCategorySection = (categoryId, categoryData) => {
+    return (
+      <View key={categoryId} style={styles.categorySection}>
+        <Text style={styles.categoryTitle}>{categoryData.categoryName}</Text>
+        <View style={styles.thumbnailGrid}>
+          {categoryData.entries.map((entry) => (
+            <TouchableOpacity
+              key={entry.id}
+              style={styles.thumbnailItem}
+              onPress={() => {
+                // TODO: 상세 보기 구현
+                console.log('엔트리 선택:', entry);
+              }}
+            >
+              <Image
+                source={{ uri: entry.imageUri }}
+                style={styles.thumbnail}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
-      {photosByCategory[category.name] && photosByCategory[category.name].length > 0 ? (
-        <FlatList
-          data={photosByCategory[category.name]}
-          renderItem={renderPhotoThumbnail}
-          keyExtractor={photo => photo.id}
-          numColumns={3}
-          contentContainerStyle={styles.photoGrid}
-          scrollEnabled={false}
-        />
-      ) : (
-        <Text style={styles.noPhotoText}>이 카테고리에 사진이 없습니다.</Text>
-      )}
-    </View>
-  );
+    );
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      {isLoading && ( // 로딩 스피너 표시
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.accentApricot} />
+    <View style={[GlobalStyles.container, { paddingTop: insets.top }]}>
+      <Header title="성장앨범" showBackButton={true} />
+      
+      <ScrollView style={styles.content}>
+        {/* 뷰 토글 버튼 */}
+        <View style={styles.viewToggle}>
+          <TouchableOpacity 
+            style={styles.toggleButton}
+            onPress={() => navigation.navigate('GrowthAlbumCalendarView')}
+          >
+            <Text style={styles.toggleText}>캘린더 보기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.toggleButton, styles.activeToggle]}>
+            <Text style={[styles.toggleText, styles.activeToggleText]}>카테고리별 보기</Text>
+          </TouchableOpacity>
         </View>
-      )}
-      <FlatList
-        data={categories}
-        renderItem={renderCategorySection}
-        keyExtractor={item => item.id || item.name} // 카테고리 ID가 없다면 이름으로 key
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.categoryListContent}
-        scrollEnabled={false}
-      />
-    </ScrollView>
+
+        {/* 카테고리별 섹션 */}
+        {Object.entries(groupedEntries).map(([categoryId, categoryData]) =>
+          renderCategorySection(categoryId, categoryData)
+        )}
+
+        {/* 빈 상태 */}
+        {Object.keys(groupedEntries).length === 0 && (
+          <View style={styles.emptyState}>
+            <FontAwesome5 name="images" size={60} color={Colors.secondaryBrown} />
+            <Text style={styles.emptyText}>아직 성장앨범에 기록이 없습니다.</Text>
+            <Text style={styles.emptySubText}>Task를 완료하고 사진을 남겨보세요!</Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
-    width: '100%',
+    paddingHorizontal: 20,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.textLight,
+    borderRadius: 10,
+    padding: 4,
+    marginVertical: 20,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  activeToggle: {
     backgroundColor: Colors.primaryBeige,
   },
-  loadingOverlay: { // 로딩 스피너 오버레이
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 15,
-    zIndex: 10,
+  toggleText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
   },
-  categoryListContent: {
-    paddingBottom: 20,
+  activeToggleText: {
+    fontWeight: FontWeights.bold,
   },
   categorySection: {
-    marginBottom: 20,
-    backgroundColor: Colors.textLight,
-    borderRadius: 15,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginHorizontal: 10,
-  },
-  categoryHeader: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.primaryBeige,
+    marginBottom: 30,
   },
   categoryTitle: {
-    fontSize: FontSizes.large,
+    fontSize: FontSizes.xlarge,
     fontWeight: FontWeights.bold,
-    color: Colors.textLight,
+    color: Colors.textDark,
+    marginBottom: 15,
   },
-  photoGrid: {
-    justifyContent: 'center',
-    width: '100%',
-    padding: 10,
+  thumbnailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  photoThumbnailContainer: {
+  thumbnailItem: {
     width: '30%',
     aspectRatio: 1,
-    margin: '1.5%',
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.secondaryBrown,
+    marginBottom: 10,
   },
-  photoThumbnail: {
+  thumbnail: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    borderRadius: 10,
   },
-  photoMemo: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    color: Colors.textLight,
-    fontSize: FontSizes.small - 2,
-    paddingVertical: 3,
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 100,
+  },
+  emptyText: {
+    fontSize: FontSizes.large,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
     textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 10,
   },
-  noPhotoText: {
+  emptySubText: {
     fontSize: FontSizes.medium,
     color: Colors.secondaryBrown,
     textAlign: 'center',
-    paddingVertical: 30,
   },
 });
 

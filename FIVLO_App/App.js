@@ -4,8 +4,10 @@ import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import AppNavigator from './src/navigation/AppNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, ActivityIndicator, Alert } from 'react-native';
-import { getSubscriptionStatus } from './src/services/authApi'; // 구독 정보 API 임포트
+import { View, Text, ActivityIndicator } from 'react-native';
+
+// [수정] 실제 서버와 통신하는 API 함수를 임포트합니다.
+import { getUserInfo } from './src/services/authApi'; 
 
 // 공통 스타일 및 폰트 임포트 (로딩 화면용)
 import { Colors } from './src/styles/color';
@@ -14,44 +16,41 @@ import { FontSizes } from './src/styles/Fonts';
 export default function App() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [initialRoute, setInitialRoute] = useState('Onboarding');
-  const [isPremiumUser, setIsPremiumUser] = useState(false); // 실제 사용자 프리미엄 여부
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
 
   useEffect(() => {
     const checkUserSession = async () => {
       try {
         const userToken = await AsyncStorage.getItem('userToken');
-        const refreshToken = await AsyncStorage.getItem('refreshToken'); // 리프레시 토큰도 가져옴
 
-        if (userToken && refreshToken) {
-          // 토큰이 있다면 백엔드에 구독 정보 요청하여 프리미엄 여부 확인
+        if (userToken) {
+          // [수정] 저장된 토큰이 유효한지 실제 API 서버에 사용자 정보를 요청하여 확인합니다.
+          // 이 요청이 성공하면 토큰이 유효한 것입니다.
           try {
-            const subscriptionInfo = await getSubscriptionStatus();
-            if (subscriptionInfo && subscriptionInfo.subscriptionStatus === 'premium') { // API 응답 필드명 확인: subscriptionStatus
+            const userInfo = await getUserInfo(); // 실제 API 호출
+            
+            // 프리미엄 유저 여부 확인 (API 응답 필드에 맞게 'subscriptionStatus' 등을 확인)
+            if (userInfo && userInfo.subscriptionStatus === 'premium') {
               setIsPremiumUser(true);
             } else {
               setIsPremiumUser(false);
             }
-            setInitialRoute('Main'); // 메인 화면으로 설정
-          } catch (apiError) {
-            // getSubscriptionStatus가 401 에러를 반환하면 apiClient 인터셉터가 갱신 시도
-            // 갱신까지 실패하면 이 catch 블록으로 다시 들어올 수 있음
-            console.warn("Initial API call failed, attempting refresh or re-login:", apiError);
-            Alert.alert('세션 만료', '로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+            setInitialRoute('Main'); // 유효한 토큰이 있으니 메인 화면으로 설정
+          } catch (error) {
+            // getUserInfo()가 실패하면 (예: 401 Unauthorized) 토큰이 유효하지 않거나 만료된 것입니다.
+            console.warn("Token validation failed with server:", error);
             await AsyncStorage.removeItem('userToken');
-            await AsyncStorage.removeItem('refreshToken');
             setInitialRoute('Onboarding');
             setIsPremiumUser(false);
           }
         } else {
-          // 토큰이 없으면 온보딩/로그인 화면으로
+          // 토큰이 없으면 온보딩 화면으로
           setInitialRoute('Onboarding');
           setIsPremiumUser(false);
         }
       } catch (error) {
-        console.error("Error checking user session or fetching subscription:", error);
-        Alert.alert('오류', '세션 확인 중 문제가 발생했습니다. 다시 로그인해주세요.');
+        console.error("Error in checkUserSession:", error);
         await AsyncStorage.removeItem('userToken');
-        await AsyncStorage.removeItem('refreshToken');
         setInitialRoute('Onboarding');
         setIsPremiumUser(false);
       } finally {

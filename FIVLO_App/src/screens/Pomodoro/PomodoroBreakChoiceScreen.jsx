@@ -69,14 +69,25 @@ const PomodoroBreakChoiceScreen = ({ isPremiumUser }) => {
       )}
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.questionText}>휴식 시간 없이 바로 사이클을 진행하시겠어요?</Text>
+        <Text style={styles.titleText}>휴식시간</Text>
         
-        <CharacterImage style={styles.obooniCharacter} />
+        <Image
+          source={require('../../../assets/images/obooni_clock.png')}
+          style={styles.obooniCharacter}
+        />
+        
+        <Text style={styles.questionText}>휴식시간 없이 바로 사이클을 진행하시겠어요?</Text>
         
         <View style={styles.buttonContainer}>
-          <Button title="네" onPress={handleNoBreak} style={styles.actionButton} disabled={isLoading} />
-          <Button title="아니오" onPress={handleTakeBreak} primary={false} style={styles.actionButton} disabled={isLoading} />
+          <TouchableOpacity style={styles.actionButton} onPress={handleNoBreak} disabled={isLoading}>
+            <Text style={styles.buttonText}>네</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} onPress={handleTakeBreak} disabled={isLoading}>
+            <Text style={[styles.buttonText, styles.secondaryButtonText]}>아니오</Text>
+          </TouchableOpacity>
         </View>
+        
+        <Text style={styles.hintText}>3초가 지나면 '네'로 진행합니다.</Text>
       </ScrollView>
     </View>
   );
@@ -105,7 +116,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
-  questionText: {
+  titleText: {
     fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
@@ -115,14 +126,50 @@ const styles = StyleSheet.create({
   obooniCharacter: {
     width: 250,
     height: 250,
-    marginBottom: 50,
+    marginBottom: 30,
+    resizeMode: 'contain',
+  },
+  questionText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    marginBottom: 30,
+    textAlign: 'center',
   },
   buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     width: '80%',
-    alignItems: 'center',
+    marginBottom: 20,
   },
   actionButton: {
-    marginBottom: 15,
+    backgroundColor: Colors.accentApricot,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    flex: 1,
+    marginHorizontal: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  secondaryButton: {
+    backgroundColor: Colors.textLight,
+  },
+  buttonText: {
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+    color: Colors.textLight,
+    textAlign: 'center',
+  },
+  secondaryButtonText: {
+    color: Colors.textDark,
+  },
+  hintText: {
+    fontSize: FontSizes.small,
+    color: Colors.secondaryBrown,
+    textAlign: 'center',
   },
 });
 

@@ -2,51 +2,66 @@
 
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native'; // Alert 임포트
+import { Alert } from 'react-native';
 
-// 백엔드 Base URL 설정 (Postman 가이드 기반)
-// !!! 중요 !!! 로컬 개발 환경에서 실제 기기 테스트 시 'localhost' 대신 컴퓨터의 실제 IP 주소로 변경하세요.
-// 예: const API_BASE_URL = 'http://192.168.0.10:5000/api';
-const API_BASE_URL = 'http://localhost:8080/api/v1'; 
+const API_BASE_URL = 'https://fivlo.net/api/v1'; 
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10초 타임아웃
+  timeout: 10000,
 });
 
-// 요청 인터셉터: 모든 요청에 인증 토큰 추가 (로그인 후)
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('userToken'); // 로컬 스토리지에서 토큰 가져오기
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const publicEndpoints = [
+        '/auth/signup',
+        '/auth/signin', 
+        '/auth/social-login', // 소셜 로그인도 인증 토큰 없이 요청
+        '/auth/reissue'
+      ];
+      
+      const isPublicEndpoint = publicEndpoints.some(endpoint => 
+        config.url?.includes(endpoint)
+      );
+      
+      if (!isPublicEndpoint) {
+        const token = await AsyncStorage.getItem('userToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          console.warn(`인증이 필요한 요청(${config.url})에 토큰이 없습니다.`);
+        }
       }
     } catch (error) {
-      console.error("Error getting token from AsyncStorage:", error);
+      console.error("AsyncStorage에서 토큰을 가져오는 중 오류:", error);
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// 응답 인터셉터: 에러 처리
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    console.error("API Response Error:", error.response || error.message);
-    // 401 Unauthorized 에러 시 로그아웃 처리
-    if (error.response && error.response.status === 401) {
-      await AsyncStorage.removeItem('userToken'); // 토큰 제거
-      Alert.alert('세션 만료', '로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-      // !!! 중요 !!! 여기에 로그인 화면으로 리디렉션하는 로직 추가 필요
-      // 예: navigationService.navigate('AuthChoice') 또는 앱의 초기화 로직을 다시 트리거
-      // 현재는 Alert만 띄우고 앱이 멈출 수 있습니다.
+    // ... (기존 응답 인터셉터 로직은 그대로 유지) ...
+    if (error.response) {
+      const { status, data, config } = error.response;
+      
+      if (status === 401) {
+        await AsyncStorage.multiRemove(['userToken', 'refreshToken']);
+        Alert.alert('세션 만료', '다시 로그인해주세요.');
+      } else if (status === 403) {
+        const errorMessage = data?.message || '접근 권한이 없습니다.';
+        if (config.url?.includes('/auth/')) {
+          Alert.alert('인증 오류', data?.message || '이미 가입된 계정이거나, 계정 정보가 올바르지 않습니다.');
+        } else {
+          Alert.alert('접근 권한 없음', errorMessage);
+        }
+      }
     }
     return Promise.reject(error);
   }

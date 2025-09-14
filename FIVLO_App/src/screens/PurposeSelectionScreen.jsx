@@ -1,8 +1,8 @@
 // src/screens/PurposeSelectionScreen.jsx
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // 공통 스타일 및 컴포넌트 임포트
@@ -12,15 +12,42 @@ import { FontSizes, FontWeights } from '../styles/Fonts';
 import Header from '../components/common/Header';
 import Button from '../components/common/Button';
 import CharacterImage from '../components/common/CharacterImage';
+import { completeOnboarding } from '../services/authApi';
 
 const PurposeSelectionScreen = ({ isPremiumUser }) => {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
+  
+  const isSocialLogin = route.params?.isSocialLogin;
+  const provider = route.params?.provider;
+  const userInfo = route.params?.userInfo;
 
-  const handlePurposeSelect = (purpose) => {
+  const handlePurposeSelect = async (purpose) => {
     console.log('Selected purpose:', purpose);
-    // 백엔드 enum 값과 정확히 일치하는 문자열 전달
-    navigation.navigate('AuthChoice', { userType: purpose }); 
+    
+    try {
+      // 소셜 로그인 후 온보딩 완료인 경우
+      if (isSocialLogin) {
+        // 온보딩 완료 API 호출
+        await completeOnboarding({
+          purpose: purpose,
+          provider: provider
+        });
+        
+        // 메인 화면으로 이동
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main', params: { isPremiumUser: false } }],
+        });
+      } else {
+        // 일반적인 경우 AuthChoice로 이동
+        navigation.navigate('AuthChoice', { userType: purpose });
+      }
+    } catch (error) {
+      console.error('온보딩 완료 실패:', error);
+      Alert.alert('오류', '온보딩 완료에 실패했습니다. 다시 시도해주세요.');
+    }
   };
 
   return (
@@ -31,8 +58,24 @@ const PurposeSelectionScreen = ({ isPremiumUser }) => {
         <CharacterImage style={styles.obooniCharacter} />
 
         <Text style={styles.purposeQuestion}>
-          어떤 목적으로 FIVLO를 사용하시나요?
+          {isSocialLogin 
+            ? '어떤 목적으로 FIVLO를 사용하시나요?' 
+            : '어떤 목적으로 FIVLO를 사용하시나요?'
+          }
         </Text>
+        
+        {isSocialLogin && (
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.welcomeText}>
+              {provider === 'google' ? 'Google' : 'Apple'} 로그인이 완료되었습니다!
+            </Text>
+            {userInfo && (
+              <Text style={styles.userNameText}>
+                안녕하세요, {userInfo.name || userInfo.email}님!
+              </Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.buttonContainer}>
           <Button
@@ -90,6 +133,23 @@ const styles = StyleSheet.create({
   purposeButton: {
     width: '100%',
     marginVertical: 8,
+  },
+  welcomeContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  welcomeText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 10,
+    fontWeight: FontWeights.medium,
+  },
+  userNameText: {
+    fontSize: FontSizes.large,
+    color: Colors.textDark,
+    textAlign: 'center',
+    fontWeight: FontWeights.bold,
   },
 });
 

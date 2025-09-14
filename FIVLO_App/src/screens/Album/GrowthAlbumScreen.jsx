@@ -1,142 +1,254 @@
-// src/screens/Album/GrowthAlbumScreen.jsx
-
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
-import { useNavigation, useIsFocused } from '@react-navigation/native'; // useIsFocused 임포트 추가
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  Alert,
+} from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
-// 공통 스타일 및 컴포넌트 임포트
-import { GlobalStyles } from '../../styles/GlobalStyles';
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
+import { GlobalStyles } from '../../styles/GlobalStyles';
 import Header from '../../components/common/Header';
+import Button from '../../components/common/Button';
 
-// PhotoUploadModal, GrowthAlbumCalendarView, GrowthAlbumCategoryView 임포트
-import PhotoUploadModal from './PhotoUploadModal';
-import GrowthAlbumCalendarView from './GrowthAlbumCalendarView';
-import GrowthAlbumCategoryView from './GrowthAlbumCategoryView';
-
-const GrowthAlbumScreen = ({ isPremiumUser }) => { // isPremiumUser prop 받기
+const GrowthAlbumScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
-  const isFocused = useIsFocused(); // 화면 포커스 여부
+  
+  const { taskData } = route.params || {};
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [memo, setMemo] = useState('');
 
-  const [activeView, setActiveView] = useState('calendar'); // 'calendar' 또는 'category'
-  const [isPhotoModalVisible, setIsPhotoModalVisible] = useState(false);
-
-  // 사진 업로드 모달에서 저장 완료 후 앨범 뷰 새로고침을 위한 상태
-  const [refreshAlbumKey, setRefreshAlbumKey] = useState(0);
-
-  // Task 완료 시 사진 촬영/갤러리 업로드 팝업 (임시 트리거)
-  const handleTriggerPhotoUpload = () => {
-    // 실제로는 TaskDetailModal에서 Task 완료 시 호출될 것
-    setIsPhotoModalVisible(true);
+  const handleImagePicker = async () => {
+    Alert.alert(
+      '사진 선택',
+      '사진을 어떻게 추가하시겠어요?',
+      [
+        { text: '취소', style: 'cancel' },
+        { text: '갤러리에서 선택', onPress: pickFromGallery },
+        { text: '카메라로 촬영', onPress: takePhoto },
+      ]
+    );
   };
 
-  // 사진 업로드 모달 닫기 및 앨범 새로고침
-  const onPhotoUploadModalClose = () => {
-    setIsPhotoModalVisible(false);
-    setRefreshAlbumKey(prev => prev + 1); // 앨범 뷰 컴포넌트 강제 리렌더링 (데이터 새로고침)
+  const pickFromGallery = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('권한 필요', '카메라 권한이 필요합니다.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0]);
+    }
+  };
+
+  const handleSave = () => {
+    if (!selectedImage) {
+      Alert.alert('알림', '사진을 추가해주세요.');
+      return;
+    }
+
+    // 성장앨범에 저장
+    const albumEntry = {
+      id: Date.now().toString(),
+      taskId: taskData?.id,
+      taskTitle: taskData?.title,
+      categoryId: taskData?.categoryId,
+      imageUri: selectedImage.uri,
+      memo: memo.trim(),
+      createdAt: new Date().toISOString(),
+    };
+
+    // TODO: API 호출로 서버에 저장
+    console.log('성장앨범 저장:', albumEntry);
+
+    Alert.alert('저장 완료', '성장앨범에 기록되었습니다!', [
+      { text: '확인', onPress: () => navigation.goBack() }
+    ]);
   };
 
   return (
-    <View style={[styles.screenContainer, { paddingTop: insets.top + 20 }]}>
-      <Header title="성장 앨범" showBackButton={true} />
-
-      <View style={styles.contentContainer}>
-        {/* 탭바: 캘린더 형식 / 카테고리별 형식 */}
-        <View style={styles.viewToggleContainer}>
-          <TouchableOpacity
-            style={[styles.viewToggleButton, activeView === 'calendar' && styles.viewToggleButtonActive]}
-            onPress={() => setActiveView('calendar')}
-          >
-            <Text style={[styles.viewButtonText, activeView === 'calendar' && styles.viewButtonTextActive]}>캘린더 형식</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewToggleButton, activeView === 'category' && styles.viewToggleButtonActive]}
-            onPress={() => setActiveView('category')}
-          >
-            <Text style={[styles.viewButtonText, activeView === 'category' && styles.viewButtonTextActive]}>카테고리별 형식</Text>
-          </TouchableOpacity>
+    <View style={[GlobalStyles.container, { paddingTop: insets.top }]}>
+      <Header title="성장앨범" showBackButton={true} />
+      
+      <View style={styles.content}>
+        <View style={styles.congratulationsContainer}>
+          <Text style={styles.congratulationsText}>
+            축하합니다! 오늘 목표를 완료했어요.{'\n'}지금 이 순간을 사진으로 남겨볼래요?
+          </Text>
         </View>
 
-        {/* 뷰에 따라 다른 컴포넌트 렌더링 */}
-        {activeView === 'calendar' ? (
-          <GrowthAlbumCalendarView key={`calendar-${refreshAlbumKey}`} isPremiumUser={isPremiumUser} />
-        ) : (
-          <GrowthAlbumCategoryView key={`category-${refreshAlbumKey}`} isPremiumUser={isPremiumUser} />
-        )}
+        <View style={styles.imageSection}>
+          {selectedImage ? (
+            <View style={styles.selectedImageContainer}>
+              <Image source={{ uri: selectedImage.uri }} style={styles.selectedImage} />
+              <TouchableOpacity
+                style={styles.changeImageButton}
+                onPress={handleImagePicker}
+              >
+                <FontAwesome5 name="edit" size={16} color={Colors.textLight} />
+                <Text style={styles.changeImageText}>변경</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.imagePickerContainer}>
+              <TouchableOpacity style={styles.imagePickerButton} onPress={handleImagePicker}>
+                <FontAwesome5 name="camera" size={40} color={Colors.textDark} />
+                <Text style={styles.imagePickerText}>사진을 업로드하거나 클릭해서 촬영하세요</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
-        {/* 테스트용 사진 업로드 트리거 버튼 (실제로는 Task 완료 시 호출) */}
-        <TouchableOpacity style={styles.testPhotoButton} onPress={handleTriggerPhotoUpload}>
-          <Text style={styles.testPhotoButtonText}>테스트: 사진 업로드 팝업 띄우기</Text>
-        </TouchableOpacity>
+        <View style={styles.memoSection}>
+          <Text style={styles.memoLabel}>오늘의 순간을 기록해보세요!</Text>
+          <TextInput
+            style={styles.memoInput}
+            placeholder="메모를 입력해주세요..."
+            placeholderTextColor={Colors.secondaryBrown}
+            value={memo}
+            onChangeText={setMemo}
+            multiline={true}
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </View>
       </View>
 
-      {/* 사진 촬영/갤러리 업로드 모달 */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isPhotoModalVisible}
-        onRequestClose={onPhotoUploadModalClose}
-      >
-        <PhotoUploadModal onClose={onPhotoUploadModalClose} isPremiumUser={isPremiumUser} />
-      </Modal>
+      <View style={styles.buttonContainer}>
+        <Button
+          title="저장하기"
+          onPress={handleSave}
+          style={styles.saveButton}
+          disabled={!selectedImage}
+        />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screenContainer: {
+  content: {
     flex: 1,
-    backgroundColor: Colors.primaryBeige,
+    paddingHorizontal: 20,
+    paddingTop: 40,
   },
-  contentContainer: {
-    flex: 1,
+  congratulationsContainer: {
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 10,
+    marginBottom: 40,
   },
-  viewToggleContainer: {
-    flexDirection: 'row',
+  congratulationsText: {
+    fontSize: FontSizes.large,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  imageSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  imagePickerContainer: {
+    width: 200,
+    height: 200,
+    borderRadius: 15,
     backgroundColor: Colors.textLight,
-    borderRadius: 15,
-    marginBottom: 20,
-    width: '95%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  viewToggleButton: {
-    flex: 1,
-    paddingVertical: 10,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.primaryBeige,
+    borderStyle: 'dashed',
+  },
+  imagePickerButton: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  imagePickerText: {
+    fontSize: FontSizes.small,
+    color: Colors.textDark,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 18,
+  },
+  selectedImageContainer: {
+    position: 'relative',
+  },
+  selectedImage: {
+    width: 200,
+    height: 200,
     borderRadius: 15,
   },
-  viewToggleButtonActive: {
-    backgroundColor: Colors.accentApricot,
+  changeImageButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: Colors.primaryBeige,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  viewButtonText: {
-    fontSize: FontSizes.medium,
-    color: Colors.secondaryBrown,
-    fontWeight: FontWeights.medium,
-  },
-  viewButtonTextActive: {
+  changeImageText: {
+    fontSize: FontSizes.small,
     color: Colors.textLight,
+    marginLeft: 5,
     fontWeight: FontWeights.bold,
   },
-  testPhotoButton: {
-    backgroundColor: Colors.secondaryBrown,
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 20,
+  memoSection: {
+    marginBottom: 30,
   },
-  testPhotoButtonText: {
-    color: Colors.textLight,
-    fontSize: FontSizes.small,
+  memoLabel: {
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    marginBottom: 15,
+  },
+  memoInput: {
+    borderWidth: 1,
+    borderColor: Colors.secondaryBrown,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    minHeight: 100,
+    backgroundColor: Colors.textLight,
+  },
+  buttonContainer: {
+    padding: 20,
+  },
+  saveButton: {
+    backgroundColor: Colors.textDark,
   },
 });
 

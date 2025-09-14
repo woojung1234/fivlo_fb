@@ -1,105 +1,227 @@
-// src/screens/TaskDeleteConfirmModal.jsx
-
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-// 공통 스타일 및 컴포넌트 임포트
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
 import Button from '../../components/common/Button';
-import CharacterImage from '../../components/common/CharacterImage';
 
-const TaskDeleteConfirmModal = ({ task, onConfirm, onCancel }) => {
-  const [deleteFutureTasks, setDeleteFutureTasks] = useState(false); // 미래 Task 삭제 여부
+const TaskDeleteConfirmModal = ({
+  task,
+  onClose,
+  onConfirm,
+}) => {
+  const [deleteFutureTasks, setDeleteFutureTasks] = useState(false);
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekDay = weekDays[date.getDay()];
+    return `${month}월 ${day}일 (${weekDay})`;
+  };
+
+  const handleConfirm = () => {
+    if (task.repeatDaily) {
+      Alert.alert(
+        '반복 일정 삭제',
+        deleteFutureTasks 
+          ? '미래의 모든 반복 일정이 삭제됩니다.'
+          : '해당 날짜의 일정만 삭제됩니다.',
+        [
+          { text: '취소', style: 'cancel' },
+          { 
+            text: '확인', 
+            onPress: () => {
+              onConfirm(deleteFutureTasks);
+              onClose();
+            }
+          }
+        ]
+      );
+    } else {
+      onConfirm();
+      onClose();
+    }
+  };
+
+  if (!task) return null;
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={true} // 항상 보이도록 설정 (부모에서 제어)
-      onRequestClose={onCancel}
-    >
-      <View style={styles.overlay}>
-        <View style={styles.modalContent}>
-          <CharacterImage style={styles.obooniImage} />
-          <Text style={styles.messageText}>
-            {task.text} Task를 정말 삭제하시겠어요?
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>
+            {formatDate(task.createdAt)} {task.title}
           </Text>
+        </View>
 
-          {task.isDailyRepeat && ( // 매일 반복 Task인 경우에만 표시
-            <View style={styles.checkboxContainer}>
-              <TouchableOpacity onPress={() => setDeleteFutureTasks(!deleteFutureTasks)}>
-                <FontAwesome5
-                  name={deleteFutureTasks ? 'check-square' : 'square'}
-                  size={24}
-                  color={deleteFutureTasks ? Colors.accentApricot : Colors.secondaryBrown}
-                />
+        {/* 내용 */}
+        <View style={styles.content}>
+          <Text style={styles.questionText}>
+            해당 TASK를 영구적으로 삭제하시겠습니까?
+          </Text>
+          
+          {task.repeatDaily && (
+            <View style={styles.repeatOptions}>
+              <TouchableOpacity
+                style={styles.optionRow}
+                onPress={() => setDeleteFutureTasks(false)}
+              >
+                <View style={[
+                  styles.radioButton,
+                  !deleteFutureTasks && styles.selectedRadioButton
+                ]}>
+                  {!deleteFutureTasks && (
+                    <View style={styles.radioButtonInner} />
+                  )}
+                </View>
+                <Text style={styles.optionText}>해당 날짜만 삭제</Text>
               </TouchableOpacity>
-              <Text style={styles.checkboxLabel}>미래 예정된 Task도 모두 삭제</Text>
+
+              <TouchableOpacity
+                style={styles.optionRow}
+                onPress={() => setDeleteFutureTasks(true)}
+              >
+                <View style={[
+                  styles.radioButton,
+                  deleteFutureTasks && styles.selectedRadioButton
+                ]}>
+                  {deleteFutureTasks && (
+                    <View style={styles.radioButtonInner} />
+                  )}
+                </View>
+                <Text style={styles.optionText}>미래의 모든 반복 일정 삭제</Text>
+              </TouchableOpacity>
             </View>
           )}
 
-          <View style={styles.buttonContainer}>
-            <Button title="예" onPress={() => onConfirm(deleteFutureTasks)} style={styles.actionButton} />
-            <Button title="아니오" onPress={onCancel} primary={false} style={styles.actionButton} />
-          </View>
+          <Text style={styles.warningText}>
+            삭제된 TASK는 복구할 수 없습니다.
+          </Text>
+        </View>
+
+        {/* 버튼 */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={onClose}
+          >
+            <FontAwesome5 name="arrow-left" size={20} color={Colors.textDark} />
+          </TouchableOpacity>
+          
+          <Button
+            title="삭제하기"
+            onPress={handleConfirm}
+            style={styles.deleteButton}
+          />
         </View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContent: {
-    backgroundColor: Colors.textLight,
+    backgroundColor: Colors.background,
     borderRadius: 20,
-    padding: 25,
-    width: '85%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    width: '90%',
+    maxWidth: 400,
   },
-  obooniImage: {
-    width: 120,
-    height: 120,
-    marginBottom: 20,
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.textLight,
   },
-  messageText: {
+  headerTitle: {
     fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 28,
   },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+  content: {
+    padding: 20,
   },
-  checkboxLabel: {
+  questionText: {
     fontSize: FontSizes.medium,
     color: Colors.textDark,
-    marginLeft: 10,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  repeatOptions: {
+    marginBottom: 20,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.secondaryBrown,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  selectedRadioButton: {
+    borderColor: Colors.primaryBeige,
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primaryBeige,
+  },
+  optionText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    flex: 1,
+  },
+  warningText: {
+    fontSize: FontSizes.small,
+    color: Colors.secondaryBrown,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    alignItems: 'center',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.textLight,
   },
-  actionButton: {
+  cancelButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.textLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  deleteButton: {
     flex: 1,
-    marginHorizontal: 5,
+    backgroundColor: '#FF6B6B',
   },
 });
 

@@ -69,7 +69,7 @@ const PomodoroResetConfirmModal = ({ isPremiumUser }) => { // isPremiumUser prop
         <View style={styles.modalContent}>
           <CharacterImage style={styles.obooniImage} />
           <Text style={styles.questionText}>
-            포모도로를 끝낼지 지속할지 묻습니다.
+            오분이와 합체하는 접종 시간을 끝내시겠습니까?
           </Text>
           <View style={styles.buttonContainer}>
             <Button title="예" onPress={handleConfirm} style={styles.modalButton} disabled={isLoading} />

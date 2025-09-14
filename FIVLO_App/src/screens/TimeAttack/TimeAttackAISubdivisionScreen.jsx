@@ -14,7 +14,7 @@ import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 
 // API 서비스 임포트
-import { createTimeAttackSession } from '../../services/timeAttackApi';
+import { createTimeAttackSession, createTimeAttackStep } from '../../services/timeAttackApi';
 import { createAIGoal } from '../../services/aiApi'; // AI API 임포트
 
 const TimeAttackAISubdivisionScreen = ({ isPremiumUser }) => {
@@ -123,21 +123,37 @@ const TimeAttackAISubdivisionScreen = ({ isPremiumUser }) => {
   const handleStartAttack = async () => {
     setIsLoadingAI(true);
     try {
-      // API 명세에 맞춰 steps 데이터 준비
-      const stepsForApi = subdividedTasks.map(task => ({
-        name: task.name,
-        minutes: task.duration, // 백엔드 steps의 'minutes' 필드에 'duration' 전달 (분 단위)
-        description: task.name, // description은 name과 동일하게 설정 (임시)
-      }));
+      // 1. 타임어택 목표 생성
+      const goalResponse = await createTimeAttackSession({
+        title: selectedGoal,
+        totalTime: totalMinutes,
+        description: `${selectedGoal}을 위한 ${totalMinutes}분 타임어택`
+      });
+      console.log('타임어택 목표 생성 성공:', goalResponse);
 
-      // createTimeAttackSession API 호출
-      const response = await createTimeAttackSession(selectedGoal, totalMinutes, stepsForApi); // totalMinutes는 분 단위로 전달
-      console.log('타임어택 세션 생성 성공:', response);
+      // 2. 각 단계별로 타임어택 단계 생성
+      const createdSteps = [];
+      for (const task of subdividedTasks) {
+        const stepResponse = await createTimeAttackStep({
+          goalId: goalResponse.id,
+          name: task.name,
+          minutes: task.duration,
+          description: task.name,
+          order: subdividedTasks.indexOf(task) + 1
+        });
+        createdSteps.push(stepResponse);
+        console.log('타임어택 단계 생성 성공:', stepResponse);
+      }
 
       Alert.alert('타임어택 시작', '세분화된 목표로 타임어택을 시작합니다!');
-      navigation.navigate('TimeAttackInProgress', { selectedGoal, subdividedTasks: formattedTasks, sessionId: response.id }); // 세션 ID 전달
+      navigation.navigate('TimeAttackInProgress', { 
+        selectedGoal, 
+        subdividedTasks: subdividedTasks, 
+        goalId: goalResponse.id,
+        steps: createdSteps
+      });
     } catch (error) {
-      console.error('타임어택 세션 생성 실패:', error.response ? error.response.data : error.message);
+      console.error('타임어택 시작 실패:', error.response ? error.response.data : error.message);
       Alert.alert('오류', error.response?.data?.message || '타임어택 시작 중 문제가 발생했습니다.');
     } finally {
       setIsLoadingAI(false);
@@ -148,15 +164,9 @@ const TimeAttackAISubdivisionScreen = ({ isPremiumUser }) => {
     <View style={styles.taskItem}>
       <Text style={styles.taskText}>{item.name}</Text>
       <View style={styles.taskTimeContainer}>
-        {item.editable ? (
-          <TouchableOpacity onPress={() => handleEditTask(item)} style={styles.editTimeButton}>
-            <Text style={styles.editTimeButtonText}>{item.duration} {item.unit}</Text>
-          </TouchableOpacity>
-        ) : (
-          <Text style={styles.staticTimeText}>{item.duration} {item.unit}</Text>
-        )}
-        <TouchableOpacity onPress={() => handleEditTask(item)} style={styles.editIcon}>
-          <FontAwesome5 name="edit" size={18} color={Colors.secondaryBrown} />
+        <Text style={styles.taskTimeText}>- {item.duration}{item.unit}</Text>
+        <TouchableOpacity style={styles.removeButton}>
+          <FontAwesome5 name="times" size={16} color={Colors.secondaryBrown} />
         </TouchableOpacity>
       </View>
     </View>
@@ -176,14 +186,23 @@ const TimeAttackAISubdivisionScreen = ({ isPremiumUser }) => {
 
         {!isLoadingAI && (
           <>
-            <Text style={styles.sectionTitle}>오분이가 당신을 위한{"\n"}{totalMinutes}분 타임어택을 만들었어요!</Text> {/* totalMinutes 반영 */}
-            <FlatList
-              data={subdividedTasks}
-              renderItem={renderSubdividedTaskItem}
-              keyExtractor={item => item.id}
-              scrollEnabled={false}
-              contentContainerStyle={styles.flatListContent}
-            />
+            <Text style={styles.sectionTitle}>오분이가 당신을 위한 {totalMinutes}분 타임어택을 만들었어요!</Text>
+            <View style={styles.tasksContainer}>
+              {subdividedTasks.map((item) => (
+                <View key={item.id} style={styles.taskItem}>
+                  <Text style={styles.taskText}>{item.name}</Text>
+                  <View style={styles.taskTimeContainer}>
+                    <Text style={styles.taskTimeText}>- {item.duration}{item.unit}</Text>
+                    <TouchableOpacity style={styles.removeButton}>
+                      <FontAwesome5 name="times" size={16} color={Colors.secondaryBrown} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.addTaskButton}>
+              <FontAwesome5 name="plus" size={20} color={Colors.secondaryBrown} />
+            </TouchableOpacity>
             <Button
               title="타임어택 시작"
               onPress={handleStartAttack}
@@ -261,123 +280,63 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
     marginTop: 25,
-    marginBottom: 15,
+    marginBottom: 20,
     width: '100%',
     textAlign: 'center',
     lineHeight: 30,
   },
-  flatListContent: {
+  tasksContainer: {
     width: '100%',
+    marginBottom: 20,
   },
   taskItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Colors.textLight,
-    borderRadius: 10,
+    borderRadius: 15,
     paddingVertical: 15,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   taskText: {
     fontSize: FontSizes.medium,
     color: Colors.textDark,
     flex: 1,
-    marginRight: 10,
   },
   taskTimeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  editTimeButton: {
-    backgroundColor: Colors.primaryBeige,
-    borderRadius: 5,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+  taskTimeText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
     marginRight: 10,
   },
-  editTimeButtonText: {
-    fontSize: FontSizes.small,
-    color: Colors.secondaryBrown,
-    fontWeight: FontWeights.bold,
-  },
-  staticTimeText: {
-    fontSize: FontSizes.small,
-    color: Colors.secondaryBrown,
-    fontWeight: FontWeights.bold,
-    marginRight: 10,
-  },
-  editIcon: {
+  removeButton: {
     padding: 5,
+  },
+  addTaskButton: {
+    backgroundColor: Colors.textLight,
+    borderRadius: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   startButton: {
     marginTop: 30,
     width: '100%',
-  },
-  editModalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  editModalContent: {
-    backgroundColor: Colors.textLight,
-    borderRadius: 20,
-    padding: 25,
-    width: '90%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  editModalTitle: {
-    fontSize: FontSizes.large,
-    fontWeight: FontWeights.bold,
-    color: Colors.textDark,
-    marginBottom: 20,
-  },
-  editModalInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-    backgroundColor: Colors.primaryBeige,
-    borderRadius: 10,
-    paddingHorizontal: 15,
-  },
-  editModalTextInput: {
-    flex: 1,
-    fontSize: FontSizes.medium,
-    color: Colors.textDark,
-    minHeight: 50,
-    textAlignVertical: 'center',
-  },
-  editModalTimeInput: {
-    width: 60,
-    fontSize: FontSizes.medium,
-    color: Colors.textDark,
-    textAlign: 'right',
-    marginRight: 5,
-  },
-  editModalTimeUnit: {
-    fontSize: FontSizes.medium,
-    color: Colors.textDark,
-  },
-  editModalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  editModalButton: {
-    flex: 1,
-    marginHorizontal: 5,
   },
 });
 

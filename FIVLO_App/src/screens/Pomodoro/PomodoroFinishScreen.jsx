@@ -73,15 +73,17 @@ const PomodoroFinishScreen = ({ isPremiumUser }) => {
       )}
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.finishText}>25분 집중 완료 !</Text>
-        <Text style={styles.finishMessage}>오분이가 칭찬합니다 ~</Text>
+        <Text style={styles.goalText}>{selectedGoal.title}</Text>
         
-        <CharacterImage style={styles.obooniCharacter} />
+        <Image
+          source={require('../../../assets/images/obooni_happy.png')}
+          style={styles.obooniCharacter}
+        />
         
-        <View style={styles.buttonContainer}>
-          <Button title="집중도 분석 보러가기" onPress={handleGoToAnalysis} style={styles.actionButton} disabled={isLoading} />
-          <Button title="홈 화면으로" onPress={handleGoToHome} primary={false} style={styles.actionButton} disabled={isLoading} />
-        </View>
+        <Text style={styles.finishText}>25분 집중 완료!</Text>
+        <Text style={styles.finishMessage}>오분이가 칭찬합니다~</Text>
+        
+        <Button title="집중도 분석 보러가기" onPress={handleGoToAnalysis} style={styles.actionButton} disabled={isLoading} />
       </ScrollView>
 
       {/* 코인 증정 모달 (20번 이미지) */}
@@ -93,11 +95,18 @@ const PomodoroFinishScreen = ({ isPremiumUser }) => {
       >
         <View style={styles.coinModalOverlay}>
           <View style={styles.coinModalContent}>
-            <CharacterImage style={styles.modalObooni} />
+            <Image
+              source={require('../../../assets/images/obooni_happy.png')}
+              style={styles.modalObooni}
+            />
+            <View style={styles.coinContainer}>
+              <Text style={styles.coinText}>$</Text>
+            </View>
+            <Text style={styles.modalTitle}>포모도로 완료</Text>
             <Text style={styles.modalMessage}>
-              포모도로 완료{"\n"}오분이가 코인을 드렸습니다{"\n"}고생하셨습니다 ~
+              오분이가 코인을 드리겠습니다{"\n"}고생하셨습니다.
             </Text>
-            <Button title="확인" onPress={() => setShowCoinModal(false)} style={styles.modalButton} />
+            <Button title="홈화면으로" onPress={() => setShowCoinModal(false)} style={styles.modalButton} />
           </View>
         </View>
       </Modal>
@@ -128,6 +137,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
+  goalText: {
+    fontSize: FontSizes.large,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  obooniCharacter: {
+    width: 120,
+    height: 120,
+    marginBottom: 30,
+    resizeMode: 'contain',
+  },
   finishText: {
     fontSize: FontSizes.extraLarge,
     fontWeight: FontWeights.bold,
@@ -138,38 +160,25 @@ const styles = StyleSheet.create({
   finishMessage: {
     fontSize: FontSizes.large,
     color: Colors.secondaryBrown,
-    marginBottom: 30,
+    marginBottom: 50,
     textAlign: 'center',
   },
-  obooniCharacter: {
-    width: 250,
-    height: 250,
-    marginBottom: 50,
-  },
-  buttonContainer: {
-    width: '80%',
-    alignItems: 'center',
-  },
   actionButton: {
-    marginBottom: 15,
+    backgroundColor: Colors.accentApricot,
+    width: '80%',
   },
   coinModalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   coinModalContent: {
     backgroundColor: Colors.textLight,
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
-    width: '80%',
+    width: '85%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
@@ -177,20 +186,47 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   modalObooni: {
-    width: 150,
-    height: 150,
+    width: 120,
+    height: 120,
     marginBottom: 20,
+    resizeMode: 'contain',
   },
-  modalMessage: {
+  coinContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFD700',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  coinText: {
+    fontSize: 40,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+  },
+  modalTitle: {
     fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
     textAlign: 'center',
     marginBottom: 30,
-    lineHeight: 28,
+    lineHeight: 24,
   },
   modalButton: {
-    width: '70%',
+    backgroundColor: Colors.accentApricot,
+    width: '80%',
   },
 });
 

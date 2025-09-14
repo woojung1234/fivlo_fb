@@ -2,10 +2,12 @@
   "expo": {
     "name": "FIVLO_App",
     "slug": "FIVLO_App",
+    "owner": "woojung1234",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "fivlo",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -13,17 +15,34 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fivlo.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.fivlo.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-web-browser"
+    ]
+,
+    "extra": {
+      "googleClientIdWeb": "932554607105-jc7kcibhrfhhsegmi2kfkr6rmt5rkol9.apps.googleusercontent.com",
+      "googleClientIdIos": "932554607105-n4tjib69onh9eo7pds493h95fv6p2h30.apps.googleusercontent.com",
+      "googleClientIdAndroid": "932554607105-6e9jnpcgvtnestgo4m1q4mkaah011eu7.apps.googleusercontent.com",
+      "kakaoRestApiKey": "KAKAO_REST_API_KEY_예시값_여기에_교체",
+      "kakaoNativeAppKey": "KAKAO_NATIVE_APP_KEY_예시값_여기에_교체",
+      "eas": {
+        "projectId": "9f4bf0a1-b7b4-46e5-9735-13b6e838933e"
+      }
     }
   }
 }

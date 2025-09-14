@@ -13,19 +13,18 @@ const OnboardingScreen = ({ isPremiumUser }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
-  const [showPurposeSelection, setShowPurposeSelection] = useState(false);
+  const [showStartButton, setShowStartButton] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowPurposeSelection(true);
-    }, 1000);
+      setShowStartButton(true);
+    }, 2000); // 2초 후 시작 버튼 표시
     return () => clearTimeout(timer);
   }, []);
 
-  const handlePurposeSelect = (purpose) => {
-    console.log('Selected purpose:', purpose);
-    // 백엔드 enum 값과 정확히 일치하는 한글 문자열로 수정!
-    navigation.navigate('AuthChoice', { userType: purpose });
+  const handleGetStarted = () => {
+    // 인증 선택 화면으로 이동
+    navigation.navigate('AuthChoice');
   };
 
   return (
@@ -41,25 +40,20 @@ const OnboardingScreen = ({ isPremiumUser }) => {
           style={styles.clockImage}
         />
 
-        {showPurposeSelection && (
-          <View style={styles.purposeContainer}>
-            <Text style={styles.purposeQuestion}>어떤 목적으로 FIVLO를 사용하시나요?</Text>
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.welcomeTitle}>FIVLO에 오신 것을 환영합니다!</Text>
+          <Text style={styles.welcomeSubtitle}>
+            짧은 몰입이 긴 변화를 만듭니다.{'\n'}
+            삶을 바꾸는 집중 루틴 플랫폼
+          </Text>
+        </View>
+
+        {showStartButton && (
+          <View style={styles.startContainer}>
             <Button
-              title="집중력 개선"
-              onPress={() => handlePurposeSelect('집중력개선')}
-              style={styles.purposeButton}
-            />
-            <Button
-              title="루틴 형성"
-              onPress={() => handlePurposeSelect('루틴형성')}
-              style={styles.purposeButton}
-              primary={false}
-            />
-            <Button
-              title="목표 관리"
-              onPress={() => handlePurposeSelect('목표관리')}
-              style={styles.purposeButton}
-              primary={false}
+              title="시작하기"
+              onPress={handleGetStarted}
+              style={styles.startButton}
             />
           </View>
         )}
@@ -88,21 +82,32 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     marginBottom: 50,
   },
-  purposeContainer: {
+  welcomeContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  welcomeTitle: {
+    fontSize: FontSizes.xlarge,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  welcomeSubtitle: {
+    fontSize: FontSizes.medium,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  startContainer: {
     width: '100%',
     alignItems: 'center',
   },
-  purposeQuestion: {
-    fontSize: FontSizes.large,
-    fontWeight: FontWeights.bold,
-    color: Colors.textDark,
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  purposeButton: {
-    width: '100%',
-    marginBottom: 15,
+  startButton: {
+    width: '80%',
   },
 });
 
 export default OnboardingScreen;
+

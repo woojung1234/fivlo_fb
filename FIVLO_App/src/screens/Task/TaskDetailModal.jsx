@@ -1,442 +1,581 @@
-// src/screens/Task/TaskDetailModal.jsx
-
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, Alert, FlatList, ActivityIndicator } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { format } from 'date-fns';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Alert,
+  Modal,
+  Image,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// 공통 스타일 및 컴포넌트 임포트
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
 import Button from '../../components/common/Button';
 
-// TaskEditModal, TaskDeleteConfirmModal 임포트
-import TaskEditModal from './TaskEditModal';
-import TaskDeleteConfirmModal from './TaskDeleteConfirmModal';
-import TaskCompleteCoinModal from './TaskCompleteCoinModal';
-import PhotoUploadModal from '../Album/PhotoUploadModal'; // 성장앨범 사진 업로드 모달 임포트
-
-// API 서비스 임포트
-import { completeTask, deleteTask, createTask, updateTask, getTasksByDate } from '../../services/taskApi';
-
-const TaskDetailModal = ({ isPremiumUser }) => { // props로 isPremiumUser만 받음
+const TaskDetailModal = ({
+  selectedDate,
+  tasks,
+  categories,
+  onClose,
+  onAddTask,
+  onEditTask,
+  onDeleteTask,
+  onToggleComplete,
+}) => {
   const navigation = useNavigation();
-  const route = useRoute();
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    categoryId: 'daily',
+    repeatDaily: false,
+    linkToAlbum: false,
+  });
 
-  const { selectedDate, onTaskUpdate, onTaskDelete } = route.params;
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekDay = weekDays[date.getDay()];
+    return `${month}월 ${day}일(${weekDay})`;
+  };
 
-  const [tasks, setTasks] = useState([]);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editMode, setEditMode] = useState('add');
-  const [currentEditingTask, setCurrentEditingTask] = useState(null);
-
-  const [isDeleteConfirmModalVisible, setIsDeleteConfirmModalVisible] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState(null);
-
-  const [showCoinModal, setShowCoinModal] = useState(false);
-  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false); // 사진 업로드 모달 상태
-  const [taskForPhoto, setTaskForPhoto] = useState(null); // 사진 업로드할 Task
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Task 목록 로드 (모달이 열릴 때마다 해당 날짜의 최신 Task를 가져옴)
-  useEffect(() => {
-    const fetchTasks = async () => {
-      setIsLoading(true);
-      try {
-        const data = await getTasksByDate(selectedDate);
-        setTasks(data);
-      } catch (error) {
-        console.error("Failed to fetch tasks for modal date:", selectedDate, error.response ? error.response.data : error.message);
-        Alert.alert('오류', 'Task 목록을 불러오는데 실패했습니다.');
-        setTasks([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    if (selectedDate) {
-      fetchTasks();
+  const handleAddTaskSubmit = () => {
+    if (!newTask.title.trim()) {
+      Alert.alert('알림', '할 일 내용을 입력해주세요.');
+      return;
     }
-  }, [selectedDate]);
 
+    onAddTask(newTask);
+    setNewTask({
+      title: '',
+      categoryId: 'daily',
+      repeatDaily: false,
+      linkToAlbum: false,
+    });
+    setShowAddTask(false);
+  };
 
-  // Task 완료 체크 토글 (API 연동)
-  const toggleTaskCompletion = async (taskId) => {
-    setIsLoading(true);
-    try {
-      const response = await completeTask(taskId); // API 호출
-      console.log("Task 완료 처리 성공:", response);
-      // UI 업데이트
-      const updatedTasks = tasks.map(task =>
-        task.id === taskId ? { ...task, isCompleted: response.task.isCompleted, completedAt: response.task.completedAt } : task
-      );
-      setTasks(updatedTasks);
-
-      // 성장앨범 사진 업로드 필요 여부 확인
-      if (response.needsGrowthAlbumPhoto && isPremiumUser) { // 유료 사용자에게만 해당
-        setTaskForPhoto(response.task); // 사진 업로드할 Task 저장
-        setShowPhotoUploadModal(true); // 사진 업로드 모달 띄우기
-      }
-
-      // 모든 Task 완료 여부 확인 후 코인 지급 모달 띄우기
-      if (response.allTasksCompleted && isPremiumUser) {
-        setShowCoinModal(true);
-      }
-
-    } catch (error) {
-      console.error("Task 완료 처리 실패:", error.response ? error.response.data : error.message);
-      Alert.alert('오류', 'Task 완료 처리 중 문제가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
+  const handleTaskSwipe = (task, direction) => {
+    if (direction === 'left') {
+      // 수정
+      onEditTask(task);
+    } else if (direction === 'right') {
+      // 삭제
+      onDeleteTask(task);
     }
   };
 
-  // Task 추가 버튼 클릭
-  const handleAddTask = () => {
-    setEditMode('add');
-    setCurrentEditingTask(null);
-    setIsEditModalVisible(true);
+  const getCategoryColor = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.color : categories[0].color;
   };
 
-  // Task 수정 아이콘 클릭
-  const handleEditTask = (task) => {
-    setEditMode('edit');
-    setCurrentEditingTask(task);
-    setIsEditModalVisible(true);
+  const getCategoryName = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : categories[0].name;
   };
-
-  // Task 삭제 아이콘 클릭
-  const handleDeleteTask = (task) => {
-    setTaskToDelete(task);
-    setIsDeleteConfirmModalVisible(true);
-  };
-
-  // Task 삭제 확인 모달에서 '예' 클릭 시 (API 연동)
-  const onConfirmDelete = async (deleteFutureTasks) => {
-    setIsLoading(true);
-    try {
-      const response = await deleteTask(taskToDelete.id, deleteFutureTasks); // API 호출
-      console.log("Task 삭제 성공:", response);
-      Alert.alert('Task 삭제', `"${taskToDelete.title}" Task가 삭제되었습니다. (${response.deletedCount}개)`);
-      
-      setIsDeleteConfirmModalVisible(false);
-      setTaskToDelete(null);
-      
-      navigation.goBack(); // 모달 닫기
-      if (onTaskDelete) onTaskDelete(); // 부모(TaskCalendarScreen)에게 업데이트 알림
-    } catch (error) {
-      console.error("Task 삭제 실패:", error.response ? error.response.data : error.message);
-      Alert.alert('오류', error.response?.data?.message || 'Task 삭제 중 문제가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Task 삭제 확인 모달에서 '아니오' 클릭 시
-  const onCancelDelete = () => {
-    setIsDeleteConfirmModalVisible(false);
-    setTaskToDelete(null);
-  };
-
-  // TaskEditModal에서 저장 완료 시 (API 연동)
-  const onTaskEditSave = async (taskData) => { // taskData는 title, categoryId, isRepeating, hasGrowthAlbum 등
-    setIsLoading(true);
-    try {
-      let response;
-      if (editMode === 'add') {
-        response = await createTask({ ...taskData, date: selectedDate }); // API 호출 (날짜는 selectedDate 사용)
-        Alert.alert('Task 추가', `"${taskData.title}" Task가 추가되었습니다.`);
-      } else {
-        response = await updateTask(taskData.id, taskData); // API 호출
-        Alert.alert('Task 수정', `"${taskData.title}" Task가 수정되었습니다.`);
-      }
-      console.log(`Task ${editMode === 'add' ? '생성' : '수정'} 성공:`, response);
-      
-      setIsEditModalVisible(false);
-      navigation.goBack(); // 모달 닫기
-      if (onTaskUpdate) onTaskUpdate(); // 부모(TaskCalendarScreen)에게 업데이트 알림
-    } catch (error) {
-      console.error(`Task ${editMode === 'add' ? '생성' : '수정'} 실패:`, error.response ? error.response.data : error.message);
-      Alert.alert('오류', error.response?.data?.message || `Task ${editMode === 'add' ? '생성' : '수정'} 중 문제가 발생했습니다.`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Task 항목 렌더링
-  const renderTaskItem = ({ item }) => (
-    <View style={styles.taskItem}>
-      <TouchableOpacity
-        style={styles.checkbox}
-        onPress={() => toggleTaskCompletion(item.id)}
-        disabled={isLoading}
-      >
-        <Text style={item.isCompleted ? styles.checkboxChecked : styles.checkboxUnchecked}>
-          {item.isCompleted ? '✔' : '☐'}
-        </Text>
-      </TouchableOpacity>
-      <Text style={[styles.taskText, item.isCompleted && styles.taskTextCompleted]}>
-        {item.title}
-      </Text>
-      <View style={styles.taskActions}>
-        <TouchableOpacity onPress={() => handleEditTask(item)} style={styles.actionIcon} disabled={isLoading}>
-          <FontAwesome5 name="pen" size={18} color={Colors.secondaryBrown} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleDeleteTask(item)} style={styles.actionIcon} disabled={isLoading}>
-          <FontAwesome5 name="trash-alt" size={18} color={Colors.secondaryBrown} />
-        </TouchableOpacity>
-      </View>
-      {item.category && item.category.name && (
-        <View style={[styles.categoryTag, { backgroundColor: item.category.color || Colors.primaryBeige }]}>
-          <Text style={styles.categoryText}>{item.category.name}</Text>
-        </View>
-      )}
-    </View>
-  );
 
   return (
-    <View style={styles.overlay}>
+    <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.accentApricot} />
-          </View>
-        )}
-        <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()} disabled={isLoading}>
-          <FontAwesome5 name="times" size={24} color={Colors.secondaryBrown} />
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <FontAwesome5 name="times" size={20} color={Colors.textDark} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{formatDate(selectedDate)}</Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        <ScrollView style={styles.content}>
+          {tasks.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>아직 등록된 할 일이 없습니다.</Text>
+            </View>
+          ) : (
+            <View style={styles.tasksList}>
+              {tasks.map((task) => (
+                <View key={task.id} style={styles.taskItem}>
+                  <TouchableOpacity
+                    style={styles.taskContent}
+                    onPress={() => {
+                      if (task.linkToAlbum && !task.completed) {
+                        // 성장앨범 연동이 체크된 경우 성장앨범 화면으로 이동
+                        navigation.navigate('GrowthAlbum', { taskData: task });
+                      } else {
+                        onToggleComplete(task.id);
+                        
+                        // 모든 Task가 완료되었는지 확인
+                        const updatedTasks = tasks.map(t => 
+                          t.id === task.id ? { ...t, completed: !t.completed } : t
+                        );
+                        const allCompleted = updatedTasks.every(t => t.completed);
+                        if (allCompleted && updatedTasks.length > 0) {
+                          setShowCompleteModal(true);
+                        }
+                      }
+                    }}
+                  >
+                    <View style={styles.taskLeft}>
+                      <View style={[
+                        styles.checkbox,
+                        task.completed && styles.checkedBox
+                      ]}>
+                        {task.completed && (
+                          <FontAwesome5 name="check" size={12} color={Colors.textLight} />
+                        )}
+                      </View>
+                      <View style={styles.taskInfo}>
+                        <Text style={[
+                          styles.taskTitle,
+                          task.completed && styles.completedTaskTitle
+                        ]}>
+                          {task.title}
+                        </Text>
+                        <Text style={styles.taskCategory}>
+                          {getCategoryName(task.categoryId)}
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.taskActions}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onEditTask(task)}
+                      >
+                        <FontAwesome5 name="bars" size={16} color={Colors.textDark} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => onDeleteTask(task)}
+                      >
+                        <FontAwesome5 name="trash" size={16} color={Colors.textDark} />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        {/* 할 일 추가 버튼 */}
+        <TouchableOpacity
+          style={styles.addTaskButton}
+          onPress={() => setShowAddTask(true)}
+        >
+          <FontAwesome5 name="plus" size={16} color={Colors.textDark} />
+          <Text style={styles.addTaskText}>할 일을 추가하세요</Text>
         </TouchableOpacity>
 
-        <Text style={styles.modalDate}>{format(new Date(selectedDate), 'yyyy년 MM월 dd일')}</Text>
+        {/* 할 일 추가 폼 */}
+        {showAddTask && (
+          <View style={styles.addTaskForm}>
+            <TextInput
+              style={styles.taskInput}
+              placeholder="내용을 입력해주세요."
+              placeholderTextColor={Colors.secondaryBrown}
+              value={newTask.title}
+              onChangeText={(text) => setNewTask(prev => ({ ...prev, title: text }))}
+              autoFocus={true}
+            />
+            
+            <View style={styles.categorySection}>
+              <Text style={styles.sectionTitle}>카테고리 설정</Text>
+              <View style={styles.categoryButtons}>
+                {categories.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryButton,
+                      newTask.categoryId === category.id && styles.selectedCategoryButton
+                    ]}
+                    onPress={() => setNewTask(prev => ({ ...prev, categoryId: category.id }))}
+                  >
+                    <View style={[
+                      styles.categoryColor,
+                      { backgroundColor: category.color }
+                    ]} />
+                    <Text style={[
+                      styles.categoryText,
+                      newTask.categoryId === category.id && styles.selectedCategoryText
+                    ]}>
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.addCategoryButton}>
+                  <FontAwesome5 name="plus" size={16} color={Colors.textDark} />
+                </TouchableOpacity>
+              </View>
+            </View>
 
-        {tasks.length > 0 ? (
-          <FlatList
-            data={tasks}
-            renderItem={renderTaskItem}
-            keyExtractor={item => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.taskListContent}
-          />
-        ) : (
-          <View style={styles.noTaskContainer}>
-            <Text style={styles.noTaskText}>할 일이 없습니다.</Text>
+            <View style={styles.checkboxSection}>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setNewTask(prev => ({ ...prev, repeatDaily: !prev.repeatDaily }))}
+              >
+                <View style={[
+                  styles.checkbox,
+                  newTask.repeatDaily && styles.checkedBox
+                ]}>
+                  {newTask.repeatDaily && (
+                    <FontAwesome5 name="check" size={12} color={Colors.textLight} />
+                  )}
+                </View>
+                <Text style={styles.checkboxText}>매일 반복</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setNewTask(prev => ({ ...prev, linkToAlbum: !prev.linkToAlbum }))}
+              >
+                <View style={[
+                  styles.checkbox,
+                  newTask.linkToAlbum && styles.checkedBox
+                ]}>
+                  {newTask.linkToAlbum && (
+                    <FontAwesome5 name="check" size={12} color={Colors.textLight} />
+                  )}
+                </View>
+                <Text style={styles.checkboxText}>설정값별 연동</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formButtons}>
+              <Button
+                title="취소"
+                onPress={() => setShowAddTask(false)}
+                style={styles.cancelButton}
+              />
+              <Button
+                title="Task 입력하기"
+                onPress={handleAddTaskSubmit}
+                style={styles.submitButton}
+              />
+            </View>
           </View>
         )}
-
-        <View style={styles.addTaskInputContainer}>
-          <TextInput
-            style={styles.addTaskInput}
-            placeholder="새로운 할 일을 입력하세요"
-            placeholderTextColor={Colors.secondaryBrown}
-            editable={false}
-          />
-          <TouchableOpacity style={styles.addTaskButton} onPress={handleAddTask} disabled={isLoading}>
-            <FontAwesome5 name="plus" size={20} color={Colors.textLight} />
-          </TouchableOpacity>
-        </View>
       </View>
 
-      {/* Task 추가/수정 모달 */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isEditModalVisible}
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <TaskEditModal
-          mode={editMode}
-          initialTask={currentEditingTask}
-          onSave={onTaskEditSave}
-          onClose={() => setIsEditModalVisible(false)}
-          isPremiumUser={isPremiumUser}
-        />
-      </Modal>
-
-      {/* Task 삭제 확인 모달 */}
+      {/* 일일 Task 완료 코인 지급 모달 */}
       <Modal
         animationType="fade"
         transparent={true}
-        visible={isDeleteConfirmModalVisible}
-        onRequestClose={onCancelDelete}
+        visible={showCompleteModal}
+        onRequestClose={() => setShowCompleteModal(false)}
       >
-        <TaskDeleteConfirmModal
-          task={taskToDelete}
-          onConfirm={onConfirmDelete}
-          onCancel={onCancelDelete}
-          isPremiumUser={isPremiumUser}
-        />
-      </Modal>
-
-      {/* Task 완료 코인 지급 모달 */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={showCoinModal}
-        onRequestClose={() => setShowCoinModal(false)}
-      >
-        <TaskCompleteCoinModal onClose={() => setShowCoinModal(false)} isPremiumUser={isPremiumUser} />
-      </Modal>
-
-      {/* 성장앨범 사진 업로드 모달 */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showPhotoUploadModal}
-        onRequestClose={() => setShowPhotoUploadModal(false)}
-      >
-        <PhotoUploadModal onClose={() => setShowPhotoUploadModal(false)} isPremiumUser={isPremiumUser} taskId={taskForPhoto?.id} />
+        <View style={styles.completeModalOverlay}>
+          <View style={styles.completeModalContent}>
+            <View style={styles.obooniContainer}>
+              <Image
+                source={require('../../../assets/images/obooni_happy.png')}
+                style={styles.obooniImage}
+              />
+              <View style={styles.coinContainer}>
+                <Text style={styles.coinText}>7</Text>
+              </View>
+            </View>
+            
+            <Text style={styles.completeTitle}>일일 TASK를 완료했습니다.</Text>
+            <Text style={styles.completeSubtitle}>오분이가 코인을 드리겠습니다</Text>
+            <Text style={styles.completeMessage}>고생하셨습니다.</Text>
+            
+            <TouchableOpacity
+              style={styles.completeButton}
+              onPress={() => setShowCompleteModal(false)}
+            >
+              <Text style={styles.completeButtonText}>확인</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.textLight,
-    borderRadius: 20,
-    padding: 25,
-    width: '90%',
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    minHeight: '50%',
   },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    zIndex: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.textLight,
   },
   closeButton: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    zIndex: 1,
     padding: 5,
   },
-  modalDate: {
+  headerTitle: {
     fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
-    marginBottom: 20,
-    textAlign: 'center',
   },
-  taskListContent: {
-    flexGrow: 1,
-    paddingBottom: 10,
+  placeholder: {
+    width: 30,
   },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primaryBeige,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    position: 'relative',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: Colors.secondaryBrown,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-    backgroundColor: Colors.textLight,
-  },
-  checkboxChecked: {
-    color: Colors.accentApricot,
-    fontSize: 18,
-  },
-  checkboxUnchecked: {
-    color: 'transparent',
-    fontSize: 18,
-  },
-  taskText: {
-    fontSize: FontSizes.medium,
-    color: Colors.textDark,
+  content: {
     flex: 1,
+    paddingHorizontal: 20,
   },
-  taskTextCompleted: {
-    textDecorationLine: 'line-through',
-    color: Colors.secondaryBrown,
-  },
-  taskActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  actionIcon: {
-    padding: 5,
-    marginLeft: 10,
-  },
-  categoryTag: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  categoryText: {
-    fontSize: FontSizes.small - 2,
-    color: Colors.textLight,
-    fontWeight: FontWeights.medium,
-  },
-  noTaskContainer: {
+  emptyState: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 50,
   },
-  noTaskText: {
+  emptyText: {
     fontSize: FontSizes.medium,
     color: Colors.secondaryBrown,
+    textAlign: 'center',
   },
-  addTaskInputContainer: {
+  tasksList: {
+    paddingVertical: 20,
+  },
+  taskItem: {
+    marginBottom: 10,
+  },
+  taskContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    marginTop: 20,
-    backgroundColor: Colors.primaryBeige,
+    justifyContent: 'space-between',
+    backgroundColor: Colors.textLight,
     borderRadius: 10,
-    paddingRight: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  addTaskInput: {
-    flex: 1,
     padding: 15,
+  },
+  taskLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: Colors.secondaryBrown,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  checkedBox: {
+    backgroundColor: Colors.primaryBeige,
+    borderColor: Colors.primaryBeige,
+  },
+  taskInfo: {
+    flex: 1,
+  },
+  taskTitle: {
     fontSize: FontSizes.medium,
     color: Colors.textDark,
+    marginBottom: 5,
+  },
+  completedTaskTitle: {
+    textDecorationLine: 'line-through',
+    opacity: 0.6,
+  },
+  taskCategory: {
+    fontSize: FontSizes.small,
+    color: Colors.secondaryBrown,
+  },
+  taskActions: {
+    flexDirection: 'row',
+  },
+  actionButton: {
+    padding: 10,
+    marginLeft: 5,
   },
   addTaskButton: {
-    backgroundColor: Colors.accentApricot,
-    borderRadius: 8,
-    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.textLight,
+    borderRadius: 10,
+    padding: 15,
+    margin: 20,
+  },
+  addTaskText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    marginLeft: 10,
+  },
+  addTaskForm: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.textLight,
+  },
+  taskInput: {
+    borderWidth: 1,
+    borderColor: Colors.secondaryBrown,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    marginBottom: 20,
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    marginBottom: 10,
+  },
+  categoryButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.textLight,
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+  selectedCategoryButton: {
+    backgroundColor: Colors.primaryBeige,
+  },
+  categoryColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: FontSizes.small,
+    color: Colors.textDark,
+  },
+  selectedCategoryText: {
+    fontWeight: FontWeights.bold,
+  },
+  addCategoryButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.textLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSection: {
+    marginBottom: 20,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  checkboxText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    marginLeft: 10,
+  },
+  formButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    flex: 1,
+    marginRight: 10,
+    backgroundColor: Colors.textLight,
+  },
+  submitButton: {
+    flex: 1,
+    marginLeft: 10,
+    backgroundColor: Colors.primaryBeige,
+  },
+  // 코인 지급 모달 스타일
+  completeModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completeModalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    width: '80%',
+    maxWidth: 350,
+  },
+  obooniContainer: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  obooniImage: {
+    width: 120,
+    height: 120,
+  },
+  coinContainer: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: Colors.textDark,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coinText: {
+    color: Colors.textLight,
+    fontSize: FontSizes.large,
+    fontWeight: FontWeights.bold,
+  },
+  completeTitle: {
+    fontSize: FontSizes.large,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  completeSubtitle: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  completeMessage: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  completeButton: {
+    backgroundColor: Colors.textDark,
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    borderRadius: 25,
+  },
+  completeButtonText: {
+    color: Colors.textLight,
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
   },
 });
 

@@ -81,15 +81,17 @@ const PomodoroStopScreen = ({ isPremiumUser }) => {
       )}
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.stopText}>{minutes}분 {seconds}초 집중 완료 !</Text>
-        <Text style={styles.stopMessage}>오분이가 칭찬합니다 ~</Text>
+        <Text style={styles.goalText}>{selectedGoal.title}</Text>
         
-        <CharacterImage style={styles.obooniCharacter} />
+        <Image
+          source={require('../../../assets/images/obooni_happy.png')}
+          style={styles.obooniCharacter}
+        />
         
-        <View style={styles.buttonContainer}>
-          <Button title="집중도 분석 보러가기" onPress={handleGoToAnalysis} style={styles.actionButton} disabled={isLoading} />
-          <Button title="홈 화면으로" onPress={handleGoToHome} primary={false} style={styles.actionButton} disabled={isLoading} />
-        </View>
+        <Text style={styles.stopText}>{minutes}분 {seconds}초 집중 완료!</Text>
+        <Text style={styles.stopMessage}>오분이가 칭찬합니다~</Text>
+        
+        <Button title="집중도 분석 보러가기" onPress={handleGoToAnalysis} style={styles.actionButton} disabled={isLoading} />
       </ScrollView>
     </View>
   );
@@ -118,6 +120,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
   },
+  goalText: {
+    fontSize: FontSizes.large,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  obooniCharacter: {
+    width: 250,
+    height: 250,
+    marginBottom: 30,
+    resizeMode: 'contain',
+  },
   stopText: {
     fontSize: FontSizes.extraLarge,
     fontWeight: FontWeights.bold,
@@ -128,20 +143,12 @@ const styles = StyleSheet.create({
   stopMessage: {
     fontSize: FontSizes.large,
     color: Colors.secondaryBrown,
-    marginBottom: 30,
+    marginBottom: 50,
     textAlign: 'center',
   },
-  obooniCharacter: {
-    width: 250,
-    height: 250,
-    marginBottom: 50,
-  },
-  buttonContainer: {
-    width: '80%',
-    alignItems: 'center',
-  },
   actionButton: {
-    marginBottom: 15,
+    backgroundColor: Colors.accentApricot,
+    width: '80%',
   },
 });
 

@@ -14,13 +14,14 @@ import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 
 // API 서비스 임포트
-import { createPomodoroSession } from '../../services/pomodoroApi'; // API 임포트
+import { createPomodoroSession } from '../../services/pomodoroApi';
 
-// 포모도로 목표 색상 팔레트
+// 포모도로 목표 색상 팔레트 (20가지 색상)
 const COLOR_PALETTE = [
-  '#FFD1DC', '#FFABAB', '#FFC3A0', '#FFDD99', '#FFFFB5', '#D1FFB5', '#A0FFC3', '#ABFFFF',
-  '#D1B5FF', '#FFB5FF', '#C3A0FF', '#99DDFF', '#B5FFFF', '#B5FFD1', '#A0FFAB', '#C3FFAB',
-  '#E0BBE4', '#957DAD', '#D291BC', '#FFC72C',
+  '#000000', '#8B4513', '#D2B48C', '#F5DEB3', '#FFD700',
+  '#FFA500', '#FF6347', '#FF69B4', '#FF1493', '#DC143C',
+  '#32CD32', '#00FF00', '#00CED1', '#1E90FF', '#0000FF',
+  '#8A2BE2', '#9400D3', '#FF00FF', '#FFB6C1', '#DDA0DD'
 ];
 
 const PomodoroGoalCreationScreen = ({ isPremiumUser }) => {
@@ -74,34 +75,56 @@ const PomodoroGoalCreationScreen = ({ isPremiumUser }) => {
 
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top + 20 }]}>
-      <Header title="집중 목표 작성" showBackButton={true} />
+      <Header title="포모도로 기능" showBackButton={true} />
 
       <ScrollView contentContainerStyle={styles.scrollViewContentContainer}>
-        {isLoading && ( // 로딩 스피너 오버레이
+        {isLoading && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={Colors.accentApricot} />
           </View>
         )}
-        <Text style={styles.sectionTitle}>목표를 작성하는 칸</Text>
-        <TextInput
-          style={styles.goalInput}
-          placeholder="예: 토익 공부하기"
-          placeholderTextColor={Colors.secondaryBrown}
-          value={goalText}
-          onChangeText={setGoalText}
-          multiline={true}
-          numberOfLines={3}
-          textAlignVertical="top"
-          editable={!isLoading}
-        />
-
-        <Text style={styles.sectionTitle}>색상을 설정하는 칸</Text>
-        <TouchableOpacity style={styles.colorDisplayButton} onPress={() => setShowColorPicker(true)} disabled={isLoading}>
-          <View style={[styles.selectedColorPreview, { backgroundColor: selectedColor }]} />
-          <Text style={styles.colorButtonText}>색상 선택</Text>
+        
+        {/* 집중 목표 작성하기 */}
+        <TouchableOpacity 
+          style={styles.inputField}
+          onPress={() => {/* 텍스트 입력 활성화 */}}
+          disabled={isLoading}
+        >
+          <View style={styles.inputHeader}>
+            <Text style={styles.inputLabel}>집중 목표 작성하기</Text>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>4</Text>
+            </View>
+          </View>
+          <TextInput
+            style={styles.goalInput}
+            placeholder="독서하기"
+            placeholderTextColor={Colors.secondaryBrown}
+            value={goalText}
+            onChangeText={setGoalText}
+            editable={!isLoading}
+          />
         </TouchableOpacity>
 
-        <Button title="저장" onPress={handleSaveGoal} style={styles.saveButton} disabled={isLoading} />
+        {/* 집중 그래프 색상 설정 */}
+        <TouchableOpacity 
+          style={styles.inputField}
+          onPress={() => setShowColorPicker(true)} 
+          disabled={isLoading}
+        >
+          <View style={styles.inputHeader}>
+            <Text style={styles.inputLabel}>집중 그래프 색상 설정</Text>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>5</Text>
+            </View>
+          </View>
+          <View style={styles.colorPreviewContainer}>
+            <View style={[styles.selectedColorPreview, { backgroundColor: selectedColor }]} />
+            <Text style={styles.colorPreviewText}>색상 선택됨</Text>
+          </View>
+        </TouchableOpacity>
+
+        <Button title="완료" onPress={handleSaveGoal} style={styles.completeButton} disabled={isLoading} />
       </ScrollView>
 
       <Modal
@@ -137,10 +160,9 @@ const styles = StyleSheet.create({
   scrollViewContentContainer: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-    alignItems: 'center',
-    paddingTop: 10,
+    paddingTop: 20,
   },
-  loadingOverlay: { // 로딩 스피너 오버레이
+  loadingOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -152,59 +174,65 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 10,
   },
-  sectionTitle: {
-    fontSize: FontSizes.large,
+  inputField: {
+    backgroundColor: Colors.textLight,
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  inputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  inputLabel: {
+    fontSize: FontSizes.medium,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
-    marginTop: 25,
-    marginBottom: 10,
-    width: '100%',
-    textAlign: 'left',
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.accentApricot,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberText: {
+    fontSize: FontSizes.small,
+    fontWeight: FontWeights.bold,
+    color: Colors.textLight,
   },
   goalInput: {
-    width: '100%',
-    backgroundColor: Colors.textLight,
-    borderRadius: 10,
-    padding: 15,
     fontSize: FontSizes.medium,
     color: Colors.textDark,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    paddingVertical: 10,
   },
-  colorDisplayButton: {
+  colorPreviewContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    backgroundColor: Colors.textLight,
-    borderRadius: 10,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   selectedColorPreview: {
     width: 30,
     height: 30,
     borderRadius: 15,
     marginRight: 15,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: Colors.secondaryBrown,
   },
-  colorButtonText: {
+  colorPreviewText: {
     fontSize: FontSizes.medium,
     color: Colors.textDark,
   },
-  saveButton: {
-    marginTop: 40,
-    width: '100%',
+  completeButton: {
+    marginTop: 30,
+    backgroundColor: Colors.accentApricot,
   },
   colorPickerOverlay: {
     flex: 1,
@@ -237,10 +265,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   colorOption: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    margin: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    margin: 5,
     borderWidth: 2,
     borderColor: Colors.secondaryBrown,
     justifyContent: 'center',

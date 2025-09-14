@@ -1,218 +1,476 @@
-// src/screens/Album/GrowthAlbumCalendarView.jsx
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Modal,
+  Alert,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-import React, { useState, useEffect } from 'react'; // useEffect 임포트 추가
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native'; // ActivityIndicator, Alert 임포트 추가
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { format, isSameDay } from 'date-fns';
-import { ko } from 'date-fns/locale';
-
-// 공통 스타일 및 컴포넌트 임포트
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
+import { GlobalStyles } from '../../styles/GlobalStyles';
+import Header from '../../components/common/Header';
 
-// API 서비스 임포트
-import { getGrowthAlbumCalendar } from '../../services/taskApi';
+const GrowthAlbumCalendarView = () => {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [albumEntries, setAlbumEntries] = useState({});
 
-// 캘린더 한국어 설정 (TaskCalendarScreen과 동일)
-LocaleConfig.locales['ko'] = {
-  monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-  monthNamesShort: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
-  dayNames: ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'],
-  dayNamesShort: ['일', '월', '화', '수', '목', '금', '토'],
-  today: '오늘',
-};
-LocaleConfig.defaultLocale = 'ko';
-
-const GrowthAlbumCalendarView = ({ isPremiumUser }) => { // isPremiumUser prop 받기
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [photosByDate, setPhotosByDate] = useState({}); // 날짜별 사진 데이터
-  const [isLoading, setIsLoading] = useState(false);
-  const [markedDates, setMarkedDates] = useState({}); // 캘린더에 표시될 날짜들
-
-  // 앨범 데이터 로드
-  const fetchAlbumData = async (year, month) => {
-    setIsLoading(true);
-    try {
-      const data = await getGrowthAlbumCalendar(year, month); // API 호출
-      const newPhotosByDate = data.reduce((acc, photo) => {
-        const dateString = format(new Date(photo.date), 'yyyy-MM-dd'); // API 응답에 date 필드가 있다고 가정
-        if (!acc[dateString]) {
-          acc[dateString] = [];
+  // 샘플 데이터
+  useEffect(() => {
+    const sampleEntries = {
+      '2024-7-5': [
+        {
+          id: '1',
+          taskTitle: '운동하기',
+          categoryId: 'workout',
+          imageUri: 'https://via.placeholder.com/200x200/4CAF50/FFFFFF?text=WORKOUT',
+          memo: '오늘 1일차 끝!',
+          createdAt: '2024-07-05T10:00:00Z',
         }
-        acc[dateString].push(photo);
-        return acc;
-      }, {});
-      setPhotosByDate(newPhotosByDate);
+      ],
+      '2024-7-9': [
+        {
+          id: '2',
+          taskTitle: '독서하기',
+          categoryId: 'reading',
+          imageUri: 'https://via.placeholder.com/200x200/2196F3/FFFFFF?text=READING',
+          memo: '책 한 권 완독!',
+          createdAt: '2024-07-09T15:00:00Z',
+        }
+      ],
+      '2024-7-11': [
+        {
+          id: '3',
+          taskTitle: '물 마시기',
+          categoryId: 'daily',
+          imageUri: 'https://via.placeholder.com/200x200/FF9800/FFFFFF?text=WATER',
+          memo: '하루 2L 달성!',
+          createdAt: '2024-07-11T12:00:00Z',
+        }
+      ],
+    };
+    setAlbumEntries(sampleEntries);
+  }, []);
 
-      // markedDates 업데이트
-      const newMarkedDates = {};
-      Object.keys(newPhotosByDate).forEach(dateStr => {
-        newMarkedDates[dateStr] = {
-          dots: newPhotosByDate[dateStr].map(photo => ({
-            key: photo.id,
-            color: Colors.accentApricot, // 사진이 있는 날은 점 표시
-            selectedDotColor: Colors.textLight,
-          })),
-        };
-      });
-      setMarkedDates(newMarkedDates);
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    const days = [];
+    
+    // 이전 달의 빈 날짜들
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    
+    // 현재 달의 날짜들
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day));
+    }
+    
+    return days;
+  };
 
-    } catch (error) {
-      console.error("Failed to fetch growth album calendar data:", error.response ? error.response.data : error.message);
-      Alert.alert('오류', '앨범 데이터를 불러오는데 실패했습니다.');
-      setPhotosByDate({});
-    } finally {
-      setIsLoading(false);
+  const getDateKey = (date) => {
+    if (!date) return '';
+    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  };
+
+  const getEntriesForDate = (date) => {
+    const dateKey = getDateKey(date);
+    return albumEntries[dateKey] || [];
+  };
+
+  const handleDatePress = (date) => {
+    if (!date) return;
+    const entries = getEntriesForDate(date);
+    if (entries.length > 0) {
+      setSelectedDate(date);
+      setSelectedEntry(entries[0]); // 첫 번째 엔트리 선택
+      setShowDetailModal(true);
     }
   };
 
-  // 컴포넌트 마운트 시 현재 월의 데이터 로드
-  useEffect(() => {
-    const today = new Date();
-    fetchAlbumData(today.getFullYear(), today.getMonth() + 1);
-  }, []);
-
-  // 캘린더 월 변경 시 데이터 로드
-  const onMonthChange = (month) => {
-    fetchAlbumData(month.year, month.month);
+  const handleEditEntry = () => {
+    // TODO: 편집 기능 구현
+    Alert.alert('편집', '편집 기능을 구현하세요.');
   };
 
-  const onDayPress = (day) => {
-    setSelectedDate(day.dateString);
+  const handleDeleteEntry = () => {
+    Alert.alert(
+      '삭제 확인',
+      '이 기록을 삭제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            const dateKey = getDateKey(selectedDate);
+            setAlbumEntries(prev => ({
+              ...prev,
+              [dateKey]: prev[dateKey].filter(entry => entry.id !== selectedEntry.id)
+            }));
+            setShowDetailModal(false);
+          }
+        }
+      ]
+    );
   };
 
-  const photosForSelectedDate = photosByDate[selectedDate] || [];
+  const renderCalendarDay = (date, index) => {
+    if (!date) {
+      return <View key={index} style={styles.emptyDay} />;
+    }
+    
+    const entries = getEntriesForDate(date);
+    const isToday = date.toDateString() === new Date().toDateString();
+    
+    return (
+      <TouchableOpacity
+        key={index}
+        style={[
+          styles.calendarDay,
+          isToday && styles.todayDay,
+          entries.length > 0 && styles.hasEntryDay
+        ]}
+        onPress={() => handleDatePress(date)}
+      >
+        <Text style={[
+          styles.dayText,
+          isToday && styles.todayText
+        ]}>
+          {date.getDate()}
+        </Text>
+        
+        {/* 엔트리 썸네일 표시 */}
+        {entries.length > 0 && (
+          <View style={styles.thumbnailContainer}>
+            <Image
+              source={{ uri: entries[0].imageUri }}
+              style={styles.thumbnail}
+            />
+            {entries.length > 1 && (
+              <View style={styles.moreIndicator}>
+                <Text style={styles.moreText}>+{entries.length - 1}</Text>
+              </View>
+            )}
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
-  const renderPhotoItem = ({ item }) => (
-    <TouchableOpacity style={styles.photoThumbnailContainer}>
-      <Image source={{ uri: item.photoUrl }} style={styles.photoThumbnail} /> {/* API 응답에 photoUrl 필드가 있다고 가정 */}
-      <Text style={styles.photoMemo}>{item.memo}</Text>
-    </TouchableOpacity>
-  );
+  const renderCalendar = () => {
+    const days = getDaysInMonth(currentDate);
+    const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    
+    return (
+      <View style={styles.calendarContainer}>
+        {/* 요일 헤더 */}
+        <View style={styles.weekHeader}>
+          {weekDays.map((day, index) => (
+            <Text key={index} style={styles.weekDayText}>
+              {day}
+            </Text>
+          ))}
+        </View>
+        
+        {/* 달력 그리드 */}
+        <View style={styles.calendarGrid}>
+          {days.map((date, index) => renderCalendarDay(date, index))}
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      {isLoading && ( // 로딩 스피너 표시
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.accentApricot} />
-        </View>
-      )}
-      <Calendar
-        onDayPress={onDayPress}
-        onMonthChange={onMonthChange} // 월 변경 시 이벤트
-        markedDates={markedDates}
-        markingType={'dots'}
-        theme={{
-          backgroundColor: Colors.primaryBeige,
-          calendarBackground: Colors.primaryBeige,
-          textSectionTitleColor: Colors.secondaryBrown,
-          selectedDayBackgroundColor: Colors.accentApricot,
-          selectedDayTextColor: Colors.textLight,
-          todayTextColor: Colors.accentApricot,
-          dayTextColor: Colors.textDark,
-          textDisabledColor: '#d9e1e8',
-          dotColor: Colors.accentApricot,
-          selectedDotColor: Colors.textLight,
-          arrowColor: Colors.secondaryBrown,
-          monthTextColor: Colors.textDark,
-          textMonthFontWeight: FontWeights.bold,
-          textMonthFontSize: FontSizes.large,
-          textDayHeaderFontWeight: FontWeights.medium,
-          textDayFontSize: FontSizes.medium,
-          textDayFontWeight: FontWeights.regular,
-        }}
-        style={styles.calendar}
-      />
+    <View style={[GlobalStyles.container, { paddingTop: insets.top }]}>
+      <Header title="성장앨범" showBackButton={true} />
       
-      <Text style={styles.selectedDateTitle}>{format(new Date(selectedDate), 'yyyy년 MM월 dd일')}</Text>
-      {photosForSelectedDate.length > 0 ? (
-        <FlatList
-          data={photosForSelectedDate}
-          renderItem={renderPhotoItem}
-          keyExtractor={item => item.id}
-          numColumns={3}
-          contentContainerStyle={styles.photoGrid}
-          showsVerticalScrollIndicator={false}
-        />
-      ) : (
-        <Text style={styles.noPhotoText}>선택된 날짜에 사진이 없습니다.</Text>
-      )}
+      <ScrollView style={styles.content}>
+        {/* 뷰 토글 버튼 */}
+        <View style={styles.viewToggle}>
+          <TouchableOpacity style={[styles.toggleButton, styles.activeToggle]}>
+            <Text style={[styles.toggleText, styles.activeToggleText]}>캘린더 보기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.toggleButton}
+            onPress={() => navigation.navigate('GrowthAlbumCategoryView')}
+          >
+            <Text style={styles.toggleText}>카테고리별 보기</Text>
+          </TouchableOpacity>
+        </View>
+
+        {renderCalendar()}
+      </ScrollView>
+
+      {/* 상세 모달 */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={showDetailModal}
+        onRequestClose={() => setShowDetailModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {selectedDate && `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowDetailModal(false)}
+              >
+                <FontAwesome5 name="times" size={20} color={Colors.textDark} />
+              </TouchableOpacity>
+            </View>
+            
+            {selectedEntry && (
+              <>
+                <Image
+                  source={{ uri: selectedEntry.imageUri }}
+                  style={styles.modalImage}
+                />
+                
+                <View style={styles.modalMemo}>
+                  <Text style={styles.memoLabel}>MEMO</Text>
+                  <Text style={styles.memoText}>{selectedEntry.memo}</Text>
+                </View>
+                
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.deleteButton]}
+                    onPress={handleDeleteEntry}
+                  >
+                    <Text style={styles.deleteButtonText}>삭제</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.editButton]}
+                    onPress={handleEditEntry}
+                  >
+                    <Text style={styles.editButtonText}>수정</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.confirmButton]}
+                    onPress={() => setShowDetailModal(false)}
+                  >
+                    <Text style={styles.confirmButtonText}>확인</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
-    width: '100%',
+    paddingHorizontal: 20,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: Colors.textLight,
+    borderRadius: 10,
+    padding: 4,
+    marginVertical: 20,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  activeToggle: {
     backgroundColor: Colors.primaryBeige,
   },
-  loadingOverlay: { // 로딩 스피너 오버레이
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 15,
-    zIndex: 10,
+  toggleText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
   },
-  calendar: {
-    width: '100%',
-    aspectRatio: 1,
-    padding: 10,
-    borderRadius: 15,
+  activeToggleText: {
+    fontWeight: FontWeights.bold,
+  },
+  calendarContainer: {
     backgroundColor: Colors.textLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: 15,
+    padding: 15,
     marginBottom: 20,
   },
-  selectedDateTitle: {
+  weekHeader: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  weekDayText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    paddingVertical: 10,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: '14.28%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primaryBeige,
+    position: 'relative',
+  },
+  emptyDay: {
+    width: '14.28%',
+    aspectRatio: 1,
+  },
+  todayDay: {
+    backgroundColor: Colors.primaryBeige,
+  },
+  hasEntryDay: {
+    backgroundColor: Colors.textLight,
+  },
+  dayText: {
+    fontSize: FontSizes.small,
+    color: Colors.textDark,
+  },
+  todayText: {
+    fontWeight: FontWeights.bold,
+  },
+  thumbnailContainer: {
+    position: 'absolute',
+    bottom: 2,
+    left: 2,
+    right: 2,
+    height: 20,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  moreIndicator: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+  },
+  moreText: {
+    fontSize: 8,
+    color: Colors.textLight,
+    fontWeight: FontWeights.bold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: 20,
+    width: '90%',
+    maxWidth: 400,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
     fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
-    marginBottom: 15,
   },
-  photoGrid: {
-    justifyContent: 'center',
+  closeButton: {
+    padding: 5,
+  },
+  modalImage: {
     width: '100%',
-    paddingBottom: 20,
-  },
-  photoThumbnailContainer: {
-    width: '30%',
-    aspectRatio: 1,
-    margin: '1.5%',
+    height: 200,
     borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.secondaryBrown,
+    marginBottom: 20,
   },
-  photoThumbnail: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+  modalMemo: {
+    marginBottom: 20,
   },
-  photoMemo: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    color: Colors.textLight,
-    fontSize: FontSizes.small - 2,
-    paddingVertical: 3,
-    textAlign: 'center',
-  },
-  noPhotoText: {
+  memoLabel: {
     fontSize: FontSizes.medium,
-    color: Colors.secondaryBrown,
-    textAlign: 'center',
-    marginTop: 30,
+    fontWeight: FontWeights.bold,
+    color: Colors.textDark,
+    marginBottom: 10,
+  },
+  memoText: {
+    fontSize: FontSizes.medium,
+    color: Colors.textDark,
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  deleteButton: {
+    backgroundColor: '#FF6B6B',
+  },
+  editButton: {
+    backgroundColor: Colors.primaryBeige,
+  },
+  confirmButton: {
+    backgroundColor: Colors.textDark,
+  },
+  deleteButtonText: {
+    color: Colors.textLight,
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+  },
+  editButtonText: {
+    color: Colors.textDark,
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+  },
+  confirmButtonText: {
+    color: Colors.textLight,
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
   },
 });
 

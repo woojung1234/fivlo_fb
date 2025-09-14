@@ -85,7 +85,7 @@ const PomodoroGoalSelectionScreen = ({ isPremiumUser }) => {
 
   return (
     <View style={[styles.screenContainer, { paddingTop: insets.top + 20 }]}>
-      <Header title="집중 목표 선택" showBackButton={true} />
+      <Header title="포모도로 기능" showBackButton={true} />
 
       <ScrollView contentContainerStyle={styles.scrollViewContentContainer}>
         <Text style={styles.sectionTitle}>무엇에 집중하고 싶으신가요?</Text>
@@ -93,23 +93,32 @@ const PomodoroGoalSelectionScreen = ({ isPremiumUser }) => {
         {isLoading ? (
           <ActivityIndicator size="large" color={Colors.secondaryBrown} style={styles.loadingIndicator} />
         ) : goals.length > 0 ? (
-          <FlatList
-            data={goals}
-            renderItem={renderGoalItem}
-            keyExtractor={item => item.id}
-            scrollEnabled={false}
-            contentContainerStyle={styles.goalListContent}
-          />
+          <View style={styles.goalsContainer}>
+            {goals.map((goal, index) => (
+              <TouchableOpacity
+                key={goal.id}
+                style={styles.goalItem}
+                onPress={() => handleSelectGoal(goal)}
+                disabled={isLoading}
+              >
+                <Text style={styles.goalText}>{goal.title}</Text>
+                <TouchableOpacity style={styles.removeButton}>
+                  <FontAwesome5 name="times" size={16} color={Colors.secondaryBrown} />
+                </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
         ) : (
           <Text style={styles.noGoalsText}>등록된 집중 목표가 없습니다.</Text>
         )}
 
-        <Button 
-          title="새로운 목표 작성하기" 
-          onPress={() => navigation.navigate('PomodoroGoalCreation')} 
+        <TouchableOpacity 
           style={styles.createGoalButton}
+          onPress={() => navigation.navigate('PomodoroGoalCreation')} 
           disabled={isLoading}
-        />
+        >
+          <Text style={styles.createGoalButtonText}>집중 목표 작성하기</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -123,8 +132,7 @@ const styles = StyleSheet.create({
   scrollViewContentContainer: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-    alignItems: 'center',
-    paddingTop: 10,
+    paddingTop: 20,
   },
   loadingIndicator: {
     marginTop: 50,
@@ -134,51 +142,59 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
-    marginTop: 25,
-    marginBottom: 20,
-    width: '100%',
+    marginBottom: 30,
     textAlign: 'center',
   },
-  goalListContent: {
+  goalsContainer: {
     width: '100%',
+    marginBottom: 30,
   },
   goalItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.textLight,
-    borderRadius: 10,
+    borderRadius: 15,
     paddingVertical: 15,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 3,
-    width: '100%',
-  },
-  goalColorIndicator: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 15,
-    borderWidth: 1,
-    borderColor: Colors.secondaryBrown,
   },
   goalText: {
     fontSize: FontSizes.medium,
     color: Colors.textDark,
     flex: 1,
   },
+  removeButton: {
+    padding: 5,
+  },
   noGoalsText: {
     fontSize: FontSizes.medium,
     color: Colors.secondaryBrown,
     textAlign: 'center',
     marginTop: 50,
+    marginBottom: 30,
   },
   createGoalButton: {
-    marginTop: 30,
-    width: '100%',
+    backgroundColor: Colors.accentApricot,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  createGoalButtonText: {
+    fontSize: FontSizes.medium,
+    fontWeight: FontWeights.bold,
+    color: Colors.textLight,
+    textAlign: 'center',
   },
 });
 

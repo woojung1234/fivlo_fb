@@ -198,7 +198,7 @@ const PomodoroTimerScreen = ({ isPremiumUser }) => {
       <View style={styles.contentContainer}>
         <Text style={styles.goalText}>{selectedGoal.title}</Text>
 
-        <View style={[styles.timerCircle, { borderColor: animatedBorderColor }]}>
+        <Animated.View style={[styles.obooniCharacterWrapper, { transform: [{ rotateY: obooniShake }] }]}>
           <Image
             source={require('../../../assets/images/obooni_clock.png')}
             style={styles.obooniClock}
@@ -207,22 +207,19 @@ const PomodoroTimerScreen = ({ isPremiumUser }) => {
             source={require('../../../assets/images/clock_needle.png')}
             style={[styles.clockNeedle, animatedRotationStyle]}
           />
-          <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
-          <Text style={styles.remainingTimeText}>
-            {`${remainingMinutes.toString().padStart(2, '0')}분 ${remainingSeconds.toString().padStart(2, '0')}초 남았습니다.`}
-          </Text>
-        </View>
-
-        <Animated.View style={[styles.obooniCharacterWrapper, { transform: [{ rotateY: obooniShake }] }]}>
-          <CharacterImage style={styles.obooniCharacter} />
         </Animated.View>
+
+        <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>
+        <Text style={styles.remainingTimeText}>
+          {`${remainingMinutes.toString().padStart(2, '0')}분 ${remainingSeconds.toString().padStart(2, '0')}초 남았습니다.`}
+        </Text>
 
         <View style={styles.controlButtons}>
           <TouchableOpacity style={styles.controlButton} onPress={handleStartPause} disabled={isLoading}>
-            <FontAwesome5 name={isRunning ? 'pause' : 'play'} size={30} color={Colors.secondaryBrown} />
+            <FontAwesome5 name={isRunning ? 'pause' : 'play'} size={24} color={Colors.secondaryBrown} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.controlButton} onPress={handleReset} disabled={isLoading}>
-            <FontAwesome5 name="redo" size={30} color={Colors.secondaryBrown} />
+            <FontAwesome5 name="stop" size={24} color={Colors.secondaryBrown} />
           </TouchableOpacity>
         </View>
       </View>
@@ -254,66 +251,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   goalText: {
-    fontSize: FontSizes.extraLarge,
+    fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
     marginBottom: 30,
     textAlign: 'center',
   },
-  timerCircle: {
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    borderWidth: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
+  obooniCharacterWrapper: {
+    marginBottom: 30,
     position: 'relative',
   },
   obooniClock: {
-    width: '100%',
-    height: '100%',
+    width: 250,
+    height: 250,
     resizeMode: 'contain',
-    position: 'absolute',
   },
   clockNeedle: {
-    width: '40%',
-    height: '40%',
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
     position: 'absolute',
-    top: '10%',
-    left: '30%',
+    top: 75,
+    left: 75,
     transformOrigin: 'center center',
   },
   timerText: {
-    fontSize: FontSizes.extraLarge * 1.5,
+    fontSize: FontSizes.extraLarge * 1.2,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
-    position: 'absolute',
-    top: '35%',
+    marginBottom: 10,
   },
   remainingTimeText: {
     fontSize: FontSizes.medium,
     color: Colors.secondaryBrown,
-    position: 'absolute',
-    bottom: '25%',
-  },
-  obooniCharacterWrapper: {
     marginBottom: 50,
-  },
-  obooniCharacter: {
-    width: 200,
-    height: 200,
   },
   controlButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    width: '60%',
+    width: '50%',
   },
   controlButton: {
     backgroundColor: Colors.textLight,
-    padding: 20,
-    borderRadius: 15,
+    padding: 15,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

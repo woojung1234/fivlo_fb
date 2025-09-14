@@ -1,3 +1,5 @@
+// src/screens/Auth/EmailSignUpScreen.jsx
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { GlobalStyles } from '../../styles/GlobalStyles';
@@ -5,7 +7,9 @@ import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { register } from '../../services/authApi';
+
+// 1. devAuthApi 대신 실제 authApi에서 signup 함수를 가져옵니다.
+import { signup } from '../../services/authApi';
 
 const EmailSignUpScreen = () => {
   const navigation = useNavigation();
@@ -15,21 +19,53 @@ const EmailSignUpScreen = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // 닉네임 입력을 위한 상태 추가
+  const [profileName, setProfileName] = useState('');
 
   const handleSignUp = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('회원가입 오류', '이메일과 비밀번호를 입력해주세요.');
+    if (!email.trim() || !password.trim() || !profileName.trim()) {
+      Alert.alert('회원가입 오류', '닉네임, 이메일, 비밀번호를 모두 입력해주세요.');
       return;
     }
 
     try {
-      const response = await register(email, email, password, userType);
+      // 2. signup 함수가 요구하는 데이터 형식에 맞춰 객체로 전달합니다.
+      const signupData = {
+        profileName: profileName,
+        email: email,
+        password: password,
+        userType: userType
+      };
+
+      const response = await signup(signupData); // 실제 서버에 회원가입 요청
       console.log('회원가입 성공:', response);
-      Alert.alert('성공', '회원가입이 완료되었습니다.');
-      navigation.navigate('Main');
+      
+      // 회원가입 성공 후 온보딩(목적 선택) 화면으로 이동
+      navigation.navigate('PurposeSelection', { 
+        userType: userType,
+        isSocialLogin: false,
+        provider: 'email'
+      });
     } catch (error) {
-      console.error('회원가입 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('회원가입 실패', error.response?.data?.message || '회원가입 중 오류가 발생했습니다.');
+      console.error('회원가입 실패:', error);
+      
+      // 403 오류의 경우 구체적인 메시지 표시
+      if (error.response?.status === 403) {
+        Alert.alert(
+          '회원가입 실패', 
+          '이미 가입된 이메일이거나 서버에서 요청을 거부했습니다. 다른 이메일을 시도해보세요.'
+        );
+      } else if (error.response?.status === 400) {
+        Alert.alert(
+          '입력 오류', 
+          '입력한 정보를 다시 확인해주세요. 비밀번호는 8자 이상이어야 합니다.'
+        );
+      } else {
+        Alert.alert(
+          '회원가입 실패', 
+          error.message || '회원가입 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+        );
+      }
     }
   };
 
@@ -45,6 +81,16 @@ const EmailSignUpScreen = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.formContainer}>
+        {/* 닉네임 입력 필드 추가 */}
+        <TextInput
+          style={styles.input}
+          placeholder="닉네임"
+          placeholderTextColor={Colors.textSecondary}
+          autoCapitalize="none"
+          value={profileName}
+          onChangeText={setProfileName}
+        />
+
         <TextInput
           style={styles.input}
           placeholder="이메일"

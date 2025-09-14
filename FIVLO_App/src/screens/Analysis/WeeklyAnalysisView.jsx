@@ -98,7 +98,7 @@ const WeeklyAnalysisView = ({ date, isPremiumUser }) => {
       <View style={styles.statsSummaryContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>주간 누적 총 집중 시간</Text>
-          <Text style={styles.statValue}>{Math.floor(stats.totalFocusTime / 60)}시간 {stats.totalFocusTime % 60}분</Text>
+          <Text style={styles.statValue}>{Math.floor(stats.totalFocusTime / 3600)}시간 {Math.floor((stats.totalFocusTime % 3600) / 60)}분</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>주간 평균 집중 시간</Text>
@@ -118,11 +118,11 @@ const WeeklyAnalysisView = ({ date, isPremiumUser }) => {
         <View style={styles.ratioDetails}>
             <View style={styles.ratioDetailItem}>
                 <Text style={styles.statLabel}>집중 시간</Text>
-                <Text style={styles.statValue}>{Math.floor(stats.totalFocusTime / 60)}시간 {stats.totalFocusTime % 60}분</Text>
+                <Text style={styles.statValue}>{Math.floor(stats.totalFocusTime / 3600)}시간 {Math.floor((stats.totalFocusTime % 3600) / 60)}분</Text>
             </View>
             <View style={styles.ratioDetailItem}>
                 <Text style={styles.statLabel}>휴식 시간</Text>
-                <Text style={styles.statValue}>{Math.floor(stats.totalBreakTime / 60)}시간 {stats.totalBreakTime % 60}분</Text>
+                <Text style={styles.statValue}>{Math.floor(stats.totalBreakTime / 3600)}시간 {Math.floor((stats.totalBreakTime % 3600) / 60)}분</Text>
             </View>
         </View>
       </View>

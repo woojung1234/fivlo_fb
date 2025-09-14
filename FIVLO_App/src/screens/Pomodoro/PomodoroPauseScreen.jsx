@@ -1,9 +1,10 @@
 // src/screens/Pomodoro/PomodoroPauseScreen.jsx
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 // 공통 스타일 및 컴포넌트 임포트
 import { GlobalStyles } from '../../styles/GlobalStyles';
@@ -78,9 +79,13 @@ const PomodoroPauseScreen = ({ isPremiumUser }) => {
       )}
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.goalText}>{selectedGoal.title}</Text> {/* 'goal' 대신 'title' 사용 */}
+        <Text style={styles.goalText}>{selectedGoal.title}</Text>
         
-        <CharacterImage style={styles.obooniCharacter} />
+        <Image
+          source={require('../../../assets/images/obooni_clock.png')}
+          style={styles.obooniClock}
+        />
+        
         <Text style={styles.pausedTimeText}>
           {formatTime(timeLeft)}
         </Text>
@@ -89,9 +94,13 @@ const PomodoroPauseScreen = ({ isPremiumUser }) => {
             (timeLeft % 60).toString().padStart(2, '0')}초 남았습니다.`}
         </Text>
 
-        <View style={styles.buttonContainer}>
-          <Button title="다시 시작" onPress={handleResume} style={styles.actionButton} disabled={isLoading} />
-          <Button title="초기화" onPress={handleReset} primary={false} style={styles.actionButton} disabled={isLoading} />
+        <View style={styles.controlButtons}>
+          <TouchableOpacity style={styles.controlButton} onPress={handleResume} disabled={isLoading}>
+            <FontAwesome5 name="play" size={24} color={Colors.secondaryBrown} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton} onPress={handleReset} disabled={isLoading}>
+            <FontAwesome5 name="stop" size={24} color={Colors.secondaryBrown} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -122,19 +131,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   goalText: {
-    fontSize: FontSizes.extraLarge,
+    fontSize: FontSizes.large,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
     marginBottom: 30,
     textAlign: 'center',
   },
-  obooniCharacter: {
+  obooniClock: {
     width: 250,
     height: 250,
     marginBottom: 30,
+    resizeMode: 'contain',
   },
   pausedTimeText: {
-    fontSize: FontSizes.extraLarge * 1.5,
+    fontSize: FontSizes.extraLarge * 1.2,
     fontWeight: FontWeights.bold,
     color: Colors.textDark,
     marginBottom: 10,
@@ -144,12 +154,20 @@ const styles = StyleSheet.create({
     color: Colors.secondaryBrown,
     marginBottom: 50,
   },
-  buttonContainer: {
-    width: '80%',
-    alignItems: 'center',
+  controlButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '50%',
   },
-  actionButton: {
-    marginBottom: 15,
+  controlButton: {
+    backgroundColor: Colors.textLight,
+    padding: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });
 

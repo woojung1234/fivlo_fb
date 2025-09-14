@@ -8,10 +8,10 @@ import { FontSizes, FontWeights } from '../../styles/Fonts';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { login } from '../../services/authApi'; // authApi 임포트
-import AsyncStorage from '@react-native-async-storage/async-storage'; // AsyncStorage 임포트
+// 1. 실제 서버와 통신하는 authApi에서 signin 함수를 가져옵니다.
+import { signin } from '../../services/authApi';
 
-const EmailLoginScreen = ({ isPremiumUser }) => {
+const EmailLoginScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
@@ -25,15 +25,18 @@ const EmailLoginScreen = ({ isPremiumUser }) => {
     }
 
     try {
-      const response = await login(email, password); // 실제 백엔드 API 호출
+      // 2. devLogin 대신 signin 함수를 사용하여 실제 서버에 로그인을 요청합니다.
+      const response = await signin(email, password);
       console.log('로그인 성공:', response);
-      // 로그인 성공 시, userToken과 refreshToken은 authApi.js에서 AsyncStorage에 저장됩니다.
-      // App.js의 초기화 로직이 다시 실행되어 isPremiumUser 상태를 업데이트하고 Main으로 이동합니다.
-      Alert.alert('성공', '로그인 되었습니다.');
-      navigation.navigate('Main'); // 메인 화면으로 이동
+      
+      // 로그인 성공 후 메인 화면으로 바로 이동합니다.
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Main' }],
+      });
     } catch (error) {
-      console.error('로그인 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('로그인 실패', error.response?.data?.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
+      console.error('로그인 실패:', error.message);
+      Alert.alert('로그인 실패', error.message || '이메일 또는 비밀번호가 올바르지 않습니다.');
     }
   };
 

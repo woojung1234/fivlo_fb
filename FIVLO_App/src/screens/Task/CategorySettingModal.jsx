@@ -1,211 +1,187 @@
-// src/screens/Task/CategorySettingModal.jsx
-
-import React, { useState, useEffect } from 'react'; // useEffect 임포트 추가
-import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native'; // ActivityIndicator 임포트 추가
-import { useNavigation, useIsFocused } from '@react-navigation/native'; // useIsFocused 임포트 추가
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-// 공통 스타일 및 컴포넌트 임포트
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
+import { GlobalStyles } from '../../styles/GlobalStyles';
+import Header from '../../components/common/Header';
 import Button from '../../components/common/Button';
 
-// CategoryEditModal 임포트
-import CategoryEditModal from './CategoryEditModal';
-
-// API 서비스 임포트
-import { getCategories } from '../../services/taskApi';
-
-const CategorySettingModal = ({ onSave, onClose, isPremiumUser }) => { // isPremiumUser prop 받기
+const CategorySettingModal = () => {
   const navigation = useNavigation();
-  const isFocused = useIsFocused();
-
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [editMode, setEditMode] = useState('add');
-  const [currentEditingCategory, setCurrentEditingCategory] = useState(null);
-
-  const [categories, setCategories] = useState([]); // 백엔드에서 가져올 카테고리 목록
-  const [isLoading, setIsLoading] = useState(false); // 로딩 상태
-
-  // 카테고리 목록 로드
-  const fetchCategories = async () => {
-    setIsLoading(true);
-    try {
-      const data = await getCategories(); // API 호출
-      setCategories(data);
-    } catch (error) {
-      console.error("Failed to fetch categories:", error.response ? error.response.data : error.message);
-      Alert.alert('오류', '카테고리 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 화면 포커스 시 카테고리 다시 로드
-  useEffect(() => {
-    if (isFocused) {
-      fetchCategories();
-    }
-  }, [isFocused]);
-
-  const handleEditCategory = (category) => {
-    setEditMode('edit');
-    setCurrentEditingCategory(category);
-    setIsEditModalVisible(true);
-  };
+  const insets = useSafeAreaInsets();
+  
+  const [categories, setCategories] = useState([
+    { id: 'daily', name: '일상', color: '#8B4513' },
+    { id: 'startup', name: '창업팀', color: '#FFD700' },
+    { id: 'study', name: '8월 국제무역사', color: '#FFA500' },
+  ]);
 
   const handleAddCategory = () => {
-    setEditMode('add');
-    setCurrentEditingCategory(null);
-    setIsEditModalVisible(true);
+    navigation.navigate('CategoryEdit', { mode: 'add' });
   };
 
-  const onCategoryEditSave = (updatedCategory) => {
-    // 카테고리 저장 후 목록 새로고침 (실제로는 백엔드에서 다시 불러오는 것이 가장 안정적)
-    setIsEditModalVisible(false);
-    fetchCategories(); // 카테고리 목록 새로고침
+  const handleEditCategory = (category) => {
+    navigation.navigate('CategoryEdit', { 
+      mode: 'edit', 
+      category: category 
+    });
   };
 
-  const renderCategoryItem = ({ item }) => (
-    <View style={styles.categoryItem}>
-      <View style={[styles.categoryColorBox, { backgroundColor: item.color }]} />
-      <Text style={styles.categoryName}>{item.name}</Text>
-      <TouchableOpacity onPress={() => handleEditCategory(item)} style={styles.editIcon}>
-        <FontAwesome5 name="pen" size={18} color={Colors.secondaryBrown} />
-      </TouchableOpacity>
-    </View>
-  );
+  const handleDeleteCategory = (categoryId) => {
+    if (categoryId === 'daily') {
+      Alert.alert('알림', '기본 카테고리는 삭제할 수 없습니다.');
+      return;
+    }
+
+    Alert.alert(
+      '카테고리 삭제',
+      '이 카테고리를 삭제하시겠습니까?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: () => {
+            setCategories(prev => prev.filter(cat => cat.id !== categoryId));
+          }
+        }
+      ]
+    );
+  };
+
+  const handleSave = () => {
+    // 카테고리 저장 로직
+    Alert.alert('저장 완료', '카테고리 설정이 저장되었습니다.');
+    navigation.goBack();
+  };
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.modalContent}>
-        {isLoading && ( // 로딩 스피너 표시
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.accentApricot} />
-          </View>
-        )}
-        <Text style={styles.modalTitle}>카테고리 설정</Text>
-
-        {categories.length > 0 ? (
-          <FlatList
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={item => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.categoryListContent}
-          />
-        ) : (
-          <Text style={styles.noCategoriesText}>등록된 카테고리가 없습니다.</Text>
-        )}
-
-        <Button title="새 카테고리 추가" onPress={handleAddCategory} style={styles.addButton} disabled={isLoading} />
-        <Button title="닫기" onPress={onClose} primary={false} style={styles.closeButton} disabled={isLoading} />
-      </View>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isEditModalVisible}
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <CategoryEditModal
-          mode={editMode}
-          initialCategory={currentEditingCategory}
-          onSave={onCategoryEditSave}
-          onClose={() => setIsEditModalVisible(false)}
-          isPremiumUser={isPremiumUser} // isPremiumUser 전달
+    <View style={[GlobalStyles.container, { paddingTop: insets.top }]}>
+      <Header title="카테고리 설정" showBackButton={true} />
+      
+      <ScrollView style={styles.content}>
+        <View style={styles.categoriesList}>
+          {categories.map((category, index) => (
+            <View key={category.id} style={styles.categoryItem}>
+              <View style={styles.categoryLeft}>
+                <View style={[
+                  styles.categoryColor,
+                  { backgroundColor: category.color }
+                ]} />
+                <Text style={styles.categoryName}>{category.name}</Text>
+              </View>
+              
+              <View style={styles.categoryActions}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => handleEditCategory(category)}
+                >
+                  <FontAwesome5 name="bars" size={16} color={Colors.textDark} />
+                </TouchableOpacity>
+                
+                {category.id !== 'daily' && (
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleDeleteCategory(category.id)}
+                  >
+                    <FontAwesome5 name="trash" size={16} color="#FF6B6B" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+        
+        <TouchableOpacity
+          style={styles.addCategoryButton}
+          onPress={handleAddCategory}
+        >
+          <FontAwesome5 name="plus" size={20} color={Colors.textDark} />
+          <Text style={styles.addCategoryText}>새 카테고리 추가</Text>
+        </TouchableOpacity>
+      </ScrollView>
+      
+      <View style={styles.buttonContainer}>
+        <Button
+          title="저장"
+          onPress={handleSave}
+          style={styles.saveButton}
         />
-      </Modal>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 20,
   },
-  modalContent: {
-    backgroundColor: Colors.textLight,
-    borderRadius: 20,
-    padding: 25,
-    width: '90%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  loadingOverlay: { // 로딩 스피너 오버레이
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  modalTitle: {
-    fontSize: FontSizes.large,
-    fontWeight: FontWeights.bold,
-    color: Colors.textDark,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  categoryListContent: {
-    flexGrow: 1,
-    width: '100%',
-    paddingBottom: 10,
+  categoriesList: {
+    paddingVertical: 20,
   },
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryBeige,
+    justifyContent: 'space-between',
+    backgroundColor: Colors.textLight,
     borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
+    padding: 15,
     marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
-  categoryColorBox: {
+  categoryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  categoryColor: {
     width: 20,
     height: 20,
     borderRadius: 10,
     marginRight: 15,
-    borderWidth: 1,
-    borderColor: Colors.secondaryBrown,
   },
   categoryName: {
     fontSize: FontSizes.medium,
     color: Colors.textDark,
     flex: 1,
   },
-  editIcon: {
-    padding: 5,
+  categoryActions: {
+    flexDirection: 'row',
   },
-  noCategoriesText: {
+  actionButton: {
+    padding: 10,
+    marginLeft: 5,
+  },
+  addCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.textLight,
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+  },
+  addCategoryText: {
     fontSize: FontSizes.medium,
-    color: Colors.secondaryBrown,
-    textAlign: 'center',
-    marginTop: 30,
+    color: Colors.textDark,
+    marginLeft: 10,
   },
-  addButton: {
-    marginTop: 20,
-    width: '100%',
+  buttonContainer: {
+    padding: 20,
   },
-  closeButton: {
-    marginTop: 10,
-    width: '100%',
+  saveButton: {
+    backgroundColor: Colors.primaryBeige,
   },
 });
 
