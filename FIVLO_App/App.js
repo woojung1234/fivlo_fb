@@ -6,8 +6,12 @@ import AppNavigator from './src/navigation/AppNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, ActivityIndicator } from 'react-native';
 
+import * as WebBrowser from 'expo-web-browser';
+WebBrowser.maybeCompleteAuthSession();
+
 // [수정] 실제 서버와 통신하는 API 함수를 임포트합니다.
-import { getUserInfo } from './src/services/authApi'; 
+import { getUserInfo } from './src/services/authApi';
+import { initializeKakao } from './src/services/kakaoAuthServiceExpoGo'; 
 
 // 공통 스타일 및 폰트 임포트 (로딩 화면용)
 import { Colors } from './src/styles/color';
@@ -21,6 +25,9 @@ export default function App() {
   useEffect(() => {
     const checkUserSession = async () => {
       try {
+        // 카카오 로그인 초기화
+        await initializeKakao();
+        
         const userToken = await AsyncStorage.getItem('userToken');
 
         if (userToken) {

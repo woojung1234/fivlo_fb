@@ -33,16 +33,30 @@ export const signin = async (email, password) => {
  * @param {string} token - 각 소셜 플랫폼에서 발급받은 토큰
  */
 export const socialLogin = async (provider, token) => {
-  // apiClient를 사용하면 baseURL이 자동으로 적용되고, 공개 엔드포인트라 토큰도 자동으로 첨부되지 않습니다.
-  const response = await apiClient.post('/auth/social-login', {
+  console.log('=== authApi.socialLogin 호출 ===');
+  console.log('Provider:', provider);
+  console.log('Token:', token);
+  
+  const requestData = {
     provider: provider.toUpperCase(),
-    token: token, // 키 이름을 'token'으로 통일하여 모든 소셜 로그인 처리
-  });
+    code: token, // 키 이름을 'token'으로 통일하여 모든 소셜 로그인 처리
+  };
+  
+  console.log('서버로 전송할 데이터:', requestData);
+  
+  // apiClient를 사용하면 baseURL이 자동으로 적용되고, 공개 엔드포인트라 토큰도 자동으로 첨부되지 않습니다.
+  const response = await apiClient.post('/auth/social-login', requestData);
+  
+  console.log('서버 응답:', response.data);
 
   if (response.data.tokens) {
+    console.log('토큰 저장 중...');
     await AsyncStorage.setItem('userToken', response.data.tokens.accessToken);
     await AsyncStorage.setItem('refreshToken', response.data.tokens.refreshToken);
+    console.log('토큰 저장 완료');
   }
+  
+  console.log('=== authApi.socialLogin 완료 ===');
   return response.data;
 };
 

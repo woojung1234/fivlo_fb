@@ -16,7 +16,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fivlo.app"
+      "bundleIdentifier": "com.fivlo.app",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLName": "KakaoAuth",
+            "CFBundleURLSchemes": ["kakao906b442258e88daee2f317ab9bb566e1"]
+          },
+          {
+            "CFBundleURLName": "FivloApp",
+            "CFBundleURLSchemes": ["fivlo"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -38,8 +50,8 @@
       "googleClientIdWeb": "932554607105-jc7kcibhrfhhsegmi2kfkr6rmt5rkol9.apps.googleusercontent.com",
       "googleClientIdIos": "932554607105-n4tjib69onh9eo7pds493h95fv6p2h30.apps.googleusercontent.com",
       "googleClientIdAndroid": "932554607105-6e9jnpcgvtnestgo4m1q4mkaah011eu7.apps.googleusercontent.com",
-      "kakaoRestApiKey": "KAKAO_REST_API_KEY_예시값_여기에_교체",
-      "kakaoNativeAppKey": "KAKAO_NATIVE_APP_KEY_예시값_여기에_교체",
+      "kakaoRestApiKey": "906b442258e88daee2f317ab9bb566e1",
+      "kakaoNativeAppKey": "906b442258e88daee2f317ab9bb566e1",
       "eas": {
         "projectId": "9f4bf0a1-b7b4-46e5-9735-13b6e838933e"
       }

@@ -11,6 +11,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { socialLogin } from '../../services/authApi';
 import { signInWithApple } from '../../services/appleAuthService';
+import { signInWithKakao } from '../../services/kakaoAuthServiceExpoGo';
 
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -31,88 +32,64 @@ const AuthChoiceScreen = () => {
   // ==============================================================
   // 공통 redirectUri 설정
   // ==============================================================
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: Constants.appOwnership === 'expo', // Expo Go에서는 true
-    scheme: 'fivlo', // app.json의 scheme 값
-  });
+  const redirectUri = 'https://auth.expo.io/@woojung1234/FIVLO_App'
 
   // ==============================================================
-  // == Google 로그인 ==
+  // == Google 로그인 (최종 수정본) ==
   // ==============================================================
-  const [gRequest, gResponse, gPromptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: extra.googleClientIdIos,
-    androidClientId: extra.googleClientIdAndroid,
-    webClientId: extra.googleClientIdWeb,
-    redirectUri, // ✅ 추가
-  });
+  // == Google 로그인 (수정본) ==
+const [gRequest, gResponse, gPromptAsync] = AuthSession.useAuthRequest(
+  {
+    clientId: extra.googleClientIdWeb,
+    redirectUri,
+    scopes: ['profile', 'email'],
+    prompt: AuthSession.Prompt.SelectAccount,
+    responseType: AuthSession.ResponseType.Code, // ✅ 수정
+  },
+  Google.discovery
+);
 
-  useEffect(() => {
-    if (gResponse) {
-      setIsLoading(false);
-      if (gResponse.type === 'success' && gResponse.params.id_token) {
-        setIsLoading(true);
-        handleServerLogin(gResponse.params.id_token, 'GOOGLE');
-      } else if (gResponse.type === 'error') {
-        console.error('[Google] 로그인 오류:', gResponse.error);
-        Alert.alert('로그인 실패', 'Google 로그인 중 오류가 발생했습니다.');
-      }
+useEffect(() => {
+  console.log("Google redirectUri:", redirectUri); // ✅ 디버깅용
+  console.log("Google response:", gResponse);     // ✅ 디버깅용
+
+  if (gResponse) {
+    setIsLoading(false);
+    if (gResponse.type === 'success' && gResponse.params.code) {
+      setIsLoading(true);
+      handleServerLogin(gResponse.params.code, 'GOOGLE');
+    } else if (gResponse.type === 'error') {
+      console.error('[Google] 로그인 오류:', gResponse.error);
+      Alert.alert('로그인 실패', 'Google 로그인 중 오류가 발생했습니다.');
     }
-  }, [gResponse]);
+  }
+}, [gResponse]);
 
   // ==============================================================
-  // == Kakao 로그인 ==
+  // == Kakao 로그인 (네이티브 SDK 사용) ==
   // ==============================================================
-  const [kRequest, kResponse, kPromptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: extra.kakaoRestApiKey,
-      scopes: ['profile_nickname', 'account_email'],
-      redirectUri, // ✅ 동일한 redirectUri 사용
-      responseType: AuthSession.ResponseType.Code,
-    },
-    { authorizationEndpoint: 'https://kauth.kakao.com/oauth/authorize' }
-  );
-
-  useEffect(() => {
-    if (kResponse) {
-      setIsLoading(false);
-      if (kResponse.type === 'success') {
-        setIsLoading(true);
-        exchangeKakaoCodeForToken(kResponse.params.code);
-      } else if (kResponse.type === 'error') {
-        console.error('[Kakao] 로그인 오류:', kResponse.error);
-        Alert.alert('로그인 실패', '카카오 로그인 중 오류가 발생했습니다.');
-      }
-    }
-  }, [kResponse]);
-
-  const exchangeKakaoCodeForToken = async (code) => {
-    try {
-      const tokenResponse = await AuthSession.exchangeCodeAsync(
-        {
-          code,
-          clientId: extra.kakaoRestApiKey,
-          redirectUri,
-          extraParams: { grant_type: 'authorization_code' },
-        },
-        { tokenEndpoint: 'https://kauth.kakao.com/oauth/token' }
-      );
-      await handleServerLogin(tokenResponse.accessToken, 'KAKAO');
-    } catch (e) {
-      console.error('[Kakao] 토큰 교환 실패:', e);
-      Alert.alert('로그인 실패', '카카오 인증 중 오류가 발생했습니다.');
-      setIsLoading(false);
-    }
-  };
 
   // ==============================================================
   // == 공통 및 기타 로직 ==
   // ==============================================================
-  const handleServerLogin = async (token, provider) => {
+  const handleServerLogin = async (authCodeOrToken, provider) => {
     try {
-      await socialLogin(provider, token);
+      console.log('=== 서버 로그인 시작 ===');
+      console.log('Provider:', provider);
+      console.log('Auth Code/Token:', authCodeOrToken);
+      console.log('Token 길이:', authCodeOrToken?.length);
+      
+      // authApi.js의 socialLogin이 (provider, code)를 인자로 받도록 수정되어 있어야 합니다.
+      const result = await socialLogin(provider, authCodeOrToken);
+      console.log('서버 로그인 성공:', result);
+      console.log('=== 서버 로그인 완료 ===');
+      
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (err) {
+      console.error('=== 서버 API 호출 실패 ===');
       console.error('서버 API 호출 실패:', err);
+      console.error('에러 메시지:', err.message);
+      console.error('에러 응답:', err.response?.data);
       Alert.alert('로그인 실패', '서버와 통신 중 오류가 발생했습니다.');
       setIsLoading(false);
     }
@@ -125,10 +102,37 @@ const AuthChoiceScreen = () => {
     }
   };
 
-  const onKakao = () => {
-    if (!isLoading && kRequest) {
-      setIsLoading(true);
-      kPromptAsync();
+  const onKakao = async () => {
+    try {
+      if (!isLoading) {
+        setIsLoading(true);
+        console.log('=== 카카오 로그인 시작 ===');
+        
+        try {
+          const kakaoResult = await signInWithKakao();
+          console.log('카카오 로그인 결과:', kakaoResult);
+          
+          if (kakaoResult && kakaoResult.accessToken) {
+            console.log('서버로 전송할 토큰:', kakaoResult.accessToken);
+            console.log('서버 로그인 시작...');
+            await handleServerLogin(kakaoResult.accessToken, 'KAKAO');
+            console.log('=== 카카오 로그인 완료 ===');
+          } else {
+            console.log('카카오 인증 토큰을 가져오지 못했습니다.');
+            Alert.alert('로그인 실패', '카카오 인증 토큰을 가져오지 못했습니다.');
+            setIsLoading(false);
+          }
+        } catch (kakaoError) {
+          console.error('카카오 로그인 중 오류:', kakaoError);
+          throw kakaoError;
+        }
+      }
+    } catch (err) {
+      console.error('=== 카카오 로그인 실패 ===');
+      console.error('[Kakao] 로그인 실패:', err);
+      console.error('에러 메시지:', err.message);
+      Alert.alert('로그인 실패', `카카오 로그인 중 오류가 발생했습니다.\n${err.message}`);
+      setIsLoading(false);
     }
   };
 
@@ -137,6 +141,7 @@ const AuthChoiceScreen = () => {
       setIsLoading(true);
       const token = await signInWithApple();
       if (token) {
+        // Apple 로그인은 토큰 방식이므로 기존 로직 유지
         await handleServerLogin(token, 'APPLE');
       } else {
         Alert.alert('로그인 실패', 'Apple 인증 토큰을 가져오지 못했습니다.');

@@ -25,9 +25,23 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="kakao906b442258e88daee2f317ab9bb566e1" />
         <data android:scheme="fivlo"/>
         <data android:scheme="exp+fivloapp"/>
       </intent-filter>
     </activity>
+    
+    <!-- 카카오 로그인을 위한 AuthCodeHandlerActivity 추가 -->
+    <activity
+      android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="kakao906b442258e88daee2f317ab9bb566e1" />
+      </intent-filter>
+    </activity>
+    
   </application>
 </manifest>
