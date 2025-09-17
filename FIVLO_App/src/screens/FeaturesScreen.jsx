@@ -1,24 +1,23 @@
 // src/screens/FeaturesScreen.jsx
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Header from '../components/common/Header';
 import { GlobalStyles } from '../styles/GlobalStyles';
 import { Colors } from '../styles/color';
 import { FontSizes, FontWeights } from '../styles/Fonts';
-import { FontAwesome } from '@expo/vector-icons';
 
 const FeaturesScreen = () => {
   const navigation = useNavigation();
 
   const features = [
-    { name: '포모도로', icon: 'hourglass-half', screen: 'Pomodoro' },
-    { name: '망각방지', icon: 'bell', screen: 'Reminder' },
-    { name: '성장앨범', icon: 'camera', screen: 'GrowthAlbumCalendarView' },
-    { name: '타임어택', icon: 'rocket', screen: 'TimeAttack' },
-    { name: '목표설정', icon: 'bullseye', screen: 'RoutineSetting' },
-    { name: '집중분석 그래프', icon: 'bar-chart', screen: 'AnalysisGraph' }, // AnalysisGraphScreen으로 연결
+    { name: '포모도로', icon: require('../../assets/images/앱아이콘.png'), screen: 'Pomodoro' },
+    { name: '망각방지', icon: require('../../assets/images/벨.png'), screen: 'Reminder' },
+    { name: '성장앨범', icon: require('../../assets/images/앨범.png'), screen: 'GrowthAlbumCalendarView' },
+    { name: '타임어택', icon: require('../../assets/images/타임어택.png'), screen: 'TimeAttack' },
+    { name: '목표설정', icon: require('../../assets/images/테스크.png'), screen: 'RoutineSetting' },
+    { name: '집중분석 그래프', icon: require('../../assets/images/그래프.png'), screen: 'AnalysisGraph' }, // AnalysisGraphScreen으로 연결
   ];
 
   const handleFeaturePress = (screenName) => {
@@ -27,18 +26,26 @@ const FeaturesScreen = () => {
 
   return (
     <View style={GlobalStyles.container}>
-      <Header title="기능" showBackButton={true} />
+      <View style={styles.headerContainer}>
+        <Header title="기능" showBackButton={true} />
+      </View>
       <ScrollView contentContainerStyle={styles.scrollViewContentContainer}>
         <View style={styles.featureGrid}>
           {features.map((feature, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.featureItem}
-              onPress={() => handleFeaturePress(feature.screen)}
-            >
-              <FontAwesome name={feature.icon} size={40} color={Colors.secondaryBrown} />
+            <View key={index} style={styles.featureItem}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => handleFeaturePress(feature.screen)}
+              >
+                <Image 
+                  source={feature.icon} 
+                  style={styles.featureIcon}
+                  resizeMode="contain"
+                  fadeDuration={0}
+                />
+              </TouchableOpacity>
               <Text style={styles.featureText}>{feature.name}</Text>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -47,9 +54,13 @@ const FeaturesScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    paddingTop: 40,
+  },
   scrollViewContentContainer: {
     paddingHorizontal: 10,
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
     alignItems: 'center',
   },
   featureGrid: {
@@ -61,16 +72,18 @@ const styles = StyleSheet.create({
   featureItem: {
     width: '45%',
     aspectRatio: 1,
-    backgroundColor: Colors.textLight,
-    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     margin: '2.5%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  iconButton: {
+    padding: 10,
+    borderRadius: 15,
+  },
+  featureIcon: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
   },
   featureText: {
     fontSize: FontSizes.medium,

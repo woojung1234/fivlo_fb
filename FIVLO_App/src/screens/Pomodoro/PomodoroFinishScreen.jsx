@@ -76,7 +76,7 @@ const PomodoroFinishScreen = ({ isPremiumUser }) => {
         <Text style={styles.goalText}>{selectedGoal.title}</Text>
         
         <Image
-          source={require('../../../assets/images/obooni_happy.png')}
+          source={require('../../../오분이최종/gif/신남.gif')}
           style={styles.obooniCharacter}
         />
         
@@ -96,7 +96,7 @@ const PomodoroFinishScreen = ({ isPremiumUser }) => {
         <View style={styles.coinModalOverlay}>
           <View style={styles.coinModalContent}>
             <Image
-              source={require('../../../assets/images/obooni_happy.png')}
+              source={require('../../../오분이최종/gif/신남.gif')}
               style={styles.modalObooni}
             />
             <View style={styles.coinContainer}>

@@ -22,6 +22,7 @@ const PomodoroScreen = ({ isPremiumUser }) => {
 
   const [goals, setGoals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(25 * 60); // 초 단위 (UI 노출 없음)
 
   // 목표 목록 로드
   const fetchGoals = async () => {
@@ -31,16 +32,23 @@ const PomodoroScreen = ({ isPremiumUser }) => {
       const data = await getPomodoroGoals();
       console.log('포모도로 목표 목록 API 응답:', data);
 
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length > 0) {
         setGoals(data);
       } else {
-        console.warn('getPomodoroGoals API에서 배열이 아닌 데이터 수신:', data);
-        setGoals([]);
+        console.warn('getPomodoroGoals API에서 빈 배열 또는 비정상 응답. 목업 데이터 사용.');
+        setGoals([
+          { id: 'g1', title: '공부하기', color: '#C68A53' },
+          { id: 'g2', title: '운동하기', color: '#B5651D' },
+        ]);
       }
     } catch (error) {
       console.error('포모도로 목표 목록 불러오기 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('오류', '목표 목록을 불러오는데 실패했습니다.');
-      setGoals([]);
+      // 백엔드 실패 시 목업 데이터로 대체 + 1분 고정
+      setGoals([
+        { id: 'g1', title: '공부하기', color: '#C68A53' },
+        { id: 'g2', title: '운동하기', color: '#B5651D' },
+      ]);
+      setSelectedDuration(60);
     } finally {
       setIsLoading(false);
       console.log('포모도로 목표 목록 불러오기 완료.');
@@ -62,8 +70,14 @@ const PomodoroScreen = ({ isPremiumUser }) => {
 
   // 기존 목표 선택 핸들러 (목표 목록에서 선택 시)
   const handleSelectGoal = (goal) => {
-    Alert.alert('포모도로 시작', `"${goal.title}" 목표로 포모도로를 시작합니다.`);
-    navigation.navigate('PomodoroTimer', { selectedGoal: goal });
+    // 선택한 시간으로 바로 타이머 시작
+    navigation.navigate('PomodoroTimer', { 
+      selectedGoal: goal,
+      initialTimeLeft: selectedDuration,
+      initialIsFocusMode: true,
+      initialCycleCount: 0,
+      resume: true,
+    });
   };
 
   const renderGoalItem = ({ item }) => (
@@ -85,7 +99,12 @@ const PomodoroScreen = ({ isPremiumUser }) => {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <Text style={styles.questionText}>무엇에 집중하고 싶으신가요?</Text>
         
-        <CharacterImage style={styles.obooniCharacter} />
+        <Image
+          source={require('../../../오분이최종/png/book.png')}
+          style={styles.obooniCharacter}
+        />
+
+        {/* 시간 선택 UI 제거됨 */}
 
         {isLoading ? (
           <ActivityIndicator size="large" color={Colors.secondaryBrown} style={styles.loadingIndicator} />
@@ -138,9 +157,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   obooniCharacter: {
-    width: 200,
-    height: 200,
-    marginBottom: 50,
+    width: 220,
+    height: 220,
+    marginBottom: 30,
+    resizeMode: 'contain',
   },
   existingGoalsTitle: {
     fontSize: FontSizes.medium,

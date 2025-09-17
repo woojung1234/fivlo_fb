@@ -43,6 +43,7 @@ const TaskCalendarScreen = () => {
   ]);
 
   const getDaysInMonth = (date) => {
+    if (!date) return [];
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -272,10 +273,12 @@ const TaskCalendarScreen = () => {
       
       {/* 태스크 상세 모달 */}
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={showTaskDetail}
         onRequestClose={() => setShowTaskDetail(false)}
+        presentationStyle="overFullScreen"
+        statusBarTranslucent={true}
       >
         <TaskDetailModal
           selectedDate={selectedDate}
@@ -295,6 +298,8 @@ const TaskCalendarScreen = () => {
         transparent={true}
         visible={showTaskEdit}
         onRequestClose={() => setShowTaskEdit(false)}
+        presentationStyle="overFullScreen"
+        statusBarTranslucent={true}
       >
         <TaskEditModal
           task={editingTask}
@@ -314,6 +319,8 @@ const TaskCalendarScreen = () => {
         transparent={true}
         visible={showDeleteConfirm}
         onRequestClose={() => setShowDeleteConfirm(false)}
+        presentationStyle="overFullScreen"
+        statusBarTranslucent={true}
       >
         <TaskDeleteConfirmModal
           task={editingTask}

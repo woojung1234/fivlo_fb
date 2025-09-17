@@ -98,8 +98,8 @@ const PomodoroTimerScreen = ({ isPremiumUser }) => {
     setIsLoading(true);
     try {
       if (isRunning) {
-        await updatePomodoroSessionStatus(selectedGoal.id, 'pause');
-        console.log('포모도로 일시정지 성공');
+        // 백엔드 호출 실패해도 로컬로 일시정지 처리
+        try { await updatePomodoroSessionStatus(selectedGoal.id, 'pause'); } catch (e) { console.warn('백엔드 일시정지 실패 - 로컬 처리'); }
         navigation.navigate('PomodoroPause', {
           selectedGoal,
           timeLeft,
@@ -108,30 +108,22 @@ const PomodoroTimerScreen = ({ isPremiumUser }) => {
         });
         setIsRunning(false);
       } else {
-        await updatePomodoroSessionStatus(selectedGoal.id, 'start');
-        console.log('포모도로 시작 성공');
+        try { await updatePomodoroSessionStatus(selectedGoal.id, 'start'); } catch (e) { console.warn('백엔드 시작 실패 - 로컬 처리'); }
         setIsRunning(true);
       }
     } catch (error) {
       console.error('포모도로 시작/일시정지 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('오류', error.response?.data?.message || '타이머 제어 중 문제가 발생했습니다.');
+      // Alert 제거, 로컬 처리 유지
+      setIsRunning(!isRunning);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleReset = () => {
-    navigation.navigate('PomodoroResetConfirmModal', {
-      sessionId: selectedGoal.id,
-      onConfirm: async () => {
-        navigation.popToTop();
-        navigation.navigate('Pomodoro');
-      },
-      onCancel: () => {
-        // 모달 닫기만 함
-      },
-      actualFocusTime: totalPhaseTime - timeLeft,
-    });
+    // 온라인/오프라인 동일 동작: 초기 화면로 돌아가기
+    navigation.popToTop();
+    navigation.navigate('Pomodoro');
   };
 
   const handleCycleEnd = async () => {
@@ -141,15 +133,14 @@ const PomodoroTimerScreen = ({ isPremiumUser }) => {
         setIsRunning(false);
         navigation.navigate('PomodoroBreakChoice', { selectedGoal, isPremiumUser });
       } else {
-        const response = await completePomodoroSession(selectedGoal.id);
-        console.log('1사이클 완료 성공:', response);
+        try { await completePomodoroSession(selectedGoal.id); } catch (e) { console.warn('백엔드 사이클 완료 실패 - 로컬 처리'); }
         setIsRunning(false);
         setCycleCount(prev => prev + 1);
-        navigation.navigate('PomodoroCycleComplete', { selectedGoal, cycleCount: cycleCount + 1, isPremiumUser, coinEarned: response.coinEarned });
+        navigation.navigate('PomodoroCycleComplete', { selectedGoal, cycleCount: cycleCount + 1, isPremiumUser, coinEarned: 0 });
       }
     } catch (error) {
       console.error('사이클 종료 처리 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('오류', error.response?.data?.message || '사이클 종료 중 문제가 발생했습니다.');
+      // 로컬 흐름 유지
     } finally {
       setIsLoading(false);
     }
@@ -200,13 +191,10 @@ const PomodoroTimerScreen = ({ isPremiumUser }) => {
 
         <Animated.View style={[styles.obooniCharacterWrapper, { transform: [{ rotateY: obooniShake }] }]}>
           <Image
-            source={require('../../../assets/images/obooni_clock.png')}
+            source={require('../../../assets/포모도로.gif')}
             style={styles.obooniClock}
           />
-          <Animated.Image
-            source={require('../../../assets/images/clock_needle.png')}
-            style={[styles.clockNeedle, animatedRotationStyle]}
-          />
+          {/* 바늘은 gif에 불필요하므로 제거 */}
         </Animated.View>
 
         <Text style={styles.timerText}>{formatTime(timeLeft)}</Text>

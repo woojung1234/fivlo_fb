@@ -66,6 +66,7 @@ const GrowthAlbumCalendarView = () => {
   }, []);
 
   const getDaysInMonth = (date) => {
+    if (!date) return [];
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);

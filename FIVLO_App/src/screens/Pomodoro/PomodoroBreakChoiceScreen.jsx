@@ -28,14 +28,11 @@ const PomodoroBreakChoiceScreen = ({ isPremiumUser }) => {
   const handleNoBreak = async () => {
     setIsLoading(true);
     try {
-      // 백엔드에 휴식 없이 다음 집중 세션으로 바로 넘어간다고 알림 (필요시 API 추가)
-      // 현재 API 명세에는 직접적인 API가 없으므로, start 상태로 업데이트하는 것으로 대체
-      await updatePomodoroSessionStatus(selectedGoal.id, 'start');
-      console.log('휴식 없이 다음 집중 세션으로 진행');
-      navigation.navigate('PomodoroTimer', { selectedGoal, initialTimeLeft: 25 * 60, initialIsFocusMode: true, initialCycleCount: 0, resume: true });
+      try { await updatePomodoroSessionStatus(selectedGoal.id, 'start'); } catch (e) { console.warn('백엔드 연동 실패 - 로컬 진행 (no break)'); }
+      navigation.navigate('PomodoroTimer', { selectedGoal, initialTimeLeft: 60, initialIsFocusMode: true, initialCycleCount: 0, resume: true });
     } catch (error) {
-      console.error('휴식 없이 진행 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('오류', error.response?.data?.message || '진행 중 문제가 발생했습니다.');
+      // 로컬로 진행
+      navigation.navigate('PomodoroTimer', { selectedGoal, initialTimeLeft: 60, initialIsFocusMode: true, initialCycleCount: 0, resume: true });
     } finally {
       setIsLoading(false);
     }
@@ -45,14 +42,11 @@ const PomodoroBreakChoiceScreen = ({ isPremiumUser }) => {
   const handleTakeBreak = async () => {
     setIsLoading(true);
     try {
-      // 백엔드에 휴식 세션 시작을 알림 (필요시 API 추가)
-      // 현재 API 명세에는 직접적인 API가 없으므로, start 상태로 업데이트하는 것으로 대체
-      await updatePomodoroSessionStatus(selectedGoal.id, 'start');
-      console.log('휴식 시간 시작');
-      navigation.navigate('PomodoroTimer', { selectedGoal, initialTimeLeft: 5 * 60, initialIsFocusMode: false, initialCycleCount: 0, resume: true }); // 휴식 모드로 시작
+      try { await updatePomodoroSessionStatus(selectedGoal.id, 'start'); } catch (e) { console.warn('백엔드 연동 실패 - 로컬 진행 (break)'); }
+      navigation.navigate('PomodoroTimer', { selectedGoal, initialTimeLeft: 60, initialIsFocusMode: false, initialCycleCount: 0, resume: true });
     } catch (error) {
-      console.error('휴식 시간 시작 실패:', error.response ? error.response.data : error.message);
-      Alert.alert('오류', error.response?.data?.message || '휴식 시작 중 문제가 발생했습니다.');
+      // 로컬로 진행
+      navigation.navigate('PomodoroTimer', { selectedGoal, initialTimeLeft: 60, initialIsFocusMode: false, initialCycleCount: 0, resume: true });
     } finally {
       setIsLoading(false);
     }

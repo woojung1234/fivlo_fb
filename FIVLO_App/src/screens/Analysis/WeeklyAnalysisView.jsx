@@ -12,6 +12,7 @@ import CircularProgress from '../../components/common/CircularProgress';
 
 // API 서비스 임포트
 import { getWeeklyAnalysis } from '../../services/analysisApi';
+import { USE_DEMO_ANALYSIS } from '../../config/demoFlags';
 
 const WeeklyAnalysisView = ({ date, isPremiumUser }) => {
   const [weeklyData, setWeeklyData] = useState(null);
@@ -26,12 +27,33 @@ const WeeklyAnalysisView = ({ date, isPremiumUser }) => {
       const weekString = `${year}-W${weekNumber.toString().padStart(2, '0')}`;
 
       const data = await getWeeklyAnalysis(weekString); // API 호출
-      setWeeklyData(data);
+      if (data && data.stats) {
+        setWeeklyData(data);
+      } else {
+        throw new Error('empty');
+      }
     } catch (error) {
-      console.error("Failed to fetch weekly analysis data:", error.response ? error.response.data : error.message);
-      // API 호출 실패 시 weeklyData를 null로 설정하여 '데이터 없음' 화면이 표시되도록 함
-      setWeeklyData(null); 
-      Alert.alert('오류', '주간 분석 데이터를 불러오는데 실패했습니다.');
+      if (!USE_DEMO_ANALYSIS) { setWeeklyData(null); setIsLoading(false); return; }
+      // 더미 데이터
+      const demo = {
+        stats: {
+          totalFocusTime: 6 * 3600 + 28 * 60,
+          averageFocusTime: 38,
+          concentrationRatio: 76,
+          totalBreakTime: 2 * 3600 + 10 * 60,
+        },
+        bestDay: { day: '수요일' },
+        weeklyData: [
+          { day: '일', minutes: 60 },
+          { day: '월', minutes: 90 },
+          { day: '화', minutes: 30 },
+          { day: '수', minutes: 120 },
+          { day: '목', minutes: 50 },
+          { day: '금', minutes: 75 },
+          { day: '토', minutes: 20 },
+        ],
+      };
+      setWeeklyData(demo);
     } finally {
       setIsLoading(false);
     }

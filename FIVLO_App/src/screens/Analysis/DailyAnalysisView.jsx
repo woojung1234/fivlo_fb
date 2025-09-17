@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { Colors } from '../../styles/color';
 import { FontSizes, FontWeights } from '../../styles/Fonts';
 import CircularProgress from '../../components/common/CircularProgress';
+import { USE_DEMO_ANALYSIS } from '../../config/demoFlags';
 // API 서비스 임포트
 import { getDailyAnalysis } from '../../services/analysisApi';
 
@@ -21,11 +22,28 @@ const DailyAnalysisView = ({ date, isPremiumUser }) => {
     try {
       const formattedDate = format(new Date(dateToFetch), 'yyyy-MM-dd');
       const data = await getDailyAnalysis(formattedDate);
-      setDailyData(data);
+      if (data && data.stats) {
+        setDailyData(data);
+      } else {
+        throw new Error('empty');
+      }
     } catch (error) {
-      console.error("Failed to fetch daily analysis data:", error.response ? error.response.data : error.message);
-      Alert.alert('오류', '일간 분석 데이터를 불러오는데 실패했습니다.');
-      setDailyData(null);
+      if (!USE_DEMO_ANALYSIS) { setDailyData(null); }
+      // 더미 데이터로 대체
+      const demo = {
+        stats: { totalFocusTime: 180, concentrationRatio: 82 },
+        hourlyData: {
+          data: Array.from({ length: 24 }).reduce((acc, _, i) => {
+            acc[i.toString()] = { 공부하기: Math.floor(Math.random()*30), 운동: Math.floor(Math.random()*15) };
+            return acc;
+          }, {})
+        },
+        activities: [
+          { id: 'a1', goal: '공부하기', totalTime: 120, color: '#C68A53' },
+          { id: 'a2', goal: '운동', totalTime: 60, color: '#B5651D' },
+        ],
+      };
+      setDailyData(demo);
     } finally {
       setIsLoading(false);
     }
@@ -36,10 +54,11 @@ const DailyAnalysisView = ({ date, isPremiumUser }) => {
     fetchData(date);
   }, [date]);
 
-const hourlyChartData = Array.from({ length: 24 }, (_, i) => {
+  const { stats, hourlyData, activities } = dailyData || { stats:{}, hourlyData:{ data:{} }, activities:[] };
+  const hourlyChartData = Array.from({ length: 24 }, (_, i) => {
     const hour = i.toString();
     const activitiesInHour = hourlyData?.data?.[hour] || {};
-    const totalMinutesInHour = Object.values(activitiesInHour).reduce((sum, { minutes }) => sum + minutes, 0);
+    const totalMinutesInHour = Object.values(activitiesInHour).reduce((sum, v) => sum + (typeof v === 'number' ? v : v.minutes), 0);
     return { hour: i.toString().padStart(2, '0'), totalMinutes: totalMinutesInHour, activities: activitiesInHour };
   });
 
@@ -68,8 +87,6 @@ const hourlyChartData = Array.from({ length: 24 }, (_, i) => {
     );
   }
 
-   const { stats, hourlyData, activities } = dailyData;
-
 
   return (
     <View style={styles.container}>
@@ -82,8 +99,10 @@ const hourlyChartData = Array.from({ length: 24 }, (_, i) => {
               {/* 활동별 색상으로 구분된 바 차트 표시 */}
               {Object.keys(data.activities).length > 0 ? (
                 Object.keys(data.activities).map((activityName, idx) => {
-                  const activity = dailyData.activities.find(act => act.name === activityName);
-                  const heightPercentage = (data.activities[activityName] / 60) * 100; // 1시간 기준
+                  const activity = dailyData.activities.find(act => act.goal === activityName || act.name === activityName);
+                  const minutesVal = data.activities[activityName];
+                  const minutes = typeof minutesVal === 'number' ? minutesVal : minutesVal.minutes;
+                  const heightPercentage = (minutes / 60) * 100;
                   return (
                     <View
                       key={`${index}-${idx}`}

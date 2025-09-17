@@ -53,7 +53,7 @@ const AccountSettingsScreen = () => {
                     <View style={styles.avatar}>
                         <FontAwesome5 name="user" size={40} color={Colors.textDark} />
                     </View>
-                    <Text style={styles.changePhotoText}>사진 변경</Text>
+                    <Text style={styles.changePhotoText}>이미지 변경</Text>
                 </View>
 
                 {/* 이름 입력 섹션 */}
@@ -82,9 +82,14 @@ const AccountSettingsScreen = () => {
                 
                 {/* 로그아웃/회원탈퇴 섹션 */}
                 <View style={styles.actionsSection}>
-                    <TouchableOpacity onPress={handleLogout}>
-                        <Text style={styles.actionText}>로그아웃</Text>
-                    </TouchableOpacity>
+                    <View style={styles.logoutRow}>
+                        <TouchableOpacity onPress={handleLogout}>
+                            <Text style={styles.actionText}>로그아웃</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.logoutButton}>
+                            <Text style={styles.logoutButtonText}>아현</Text>
+                        </TouchableOpacity>
+                    </View>
                     <TouchableOpacity onPress={handleDeleteAccount}>
                         <Text style={styles.actionText_delete}>회원 탈퇴</Text>
                     </TouchableOpacity>
@@ -165,18 +170,33 @@ const styles = StyleSheet.create({
   // 액션 섹션
   actionsSection: {
     marginTop: 40,
+    alignItems: 'flex-start',
+  },
+  logoutRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 15,
   },
   actionText: {
     fontSize: FontSizes.medium,
-    color: Colors.secondaryBrown,
-    textDecorationLine: 'underline',
-    marginBottom: 15,
+    color: Colors.textDark,
+  },
+  logoutButton: {
+    backgroundColor: '#20B2AA', // 틸 색상
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  logoutButtonText: {
+    fontSize: FontSizes.small,
+    color: Colors.textLight,
+    fontWeight: FontWeights.medium,
   },
   actionText_delete: {
     fontSize: FontSizes.medium,
-    color: '#FF6B6B',
-    textDecorationLine: 'underline',
+    color: Colors.textDark,
   },
   // 사용목적 섹션
   purposeSection: {
@@ -196,7 +216,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBeige,
   },
   saveButton: {
-    backgroundColor: Colors.accentApricot,
+    backgroundColor: '#FFD700', // 노란색
     borderRadius: 10,
     paddingVertical: 15,
     alignItems: 'center',
