@@ -1,15 +1,13 @@
 // src/screens/PurposeSelectionScreen.jsx
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // 공통 스타일 및 컴포넌트 임포트
-import { GlobalStyles } from '../styles/GlobalStyles';
 import { Colors } from '../styles/color';
 import { FontSizes, FontWeights } from '../styles/Fonts';
-import Header from '../components/common/Header';
 import Button from '../components/common/Button';
 import CharacterImage from '../components/common/CharacterImage';
 import { completeOnboarding } from '../services/authApi';
@@ -27,21 +25,17 @@ const PurposeSelectionScreen = ({ isPremiumUser }) => {
     console.log('Selected purpose:', purpose);
     
     try {
-      // 소셜 로그인 후 온보딩 완료인 경우
       if (isSocialLogin) {
-        // 온보딩 완료 API 호출
         await completeOnboarding({
           purpose: purpose,
           provider: provider
         });
         
-        // 메인 화면으로 이동
         navigation.reset({
           index: 0,
           routes: [{ name: 'Main', params: { isPremiumUser: false } }],
         });
       } else {
-        // 일반적인 경우 AuthChoice로 이동
         navigation.navigate('AuthChoice', { userType: purpose });
       }
     } catch (error) {
@@ -51,17 +45,13 @@ const PurposeSelectionScreen = ({ isPremiumUser }) => {
   };
 
   return (
-    <View style={[styles.screenContainer, { paddingTop: insets.top + 20 }]}>
-      <Header title="사용 목적 선택" showBackButton={true} />
-
+    // Header를 제거하고 SafeAreaView의 top inset을 직접 적용합니다.
+    <View style={[styles.screenContainer, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <CharacterImage style={styles.obooniCharacter} />
 
         <Text style={styles.purposeQuestion}>
-          {isSocialLogin 
-            ? '어떤 목적으로 FIVLO를 사용하시나요?' 
-            : '어떤 목적으로 FIVLO를 사용하시나요?'
-          }
+          어떤 목적으로 FIVLO를 사용하시나요?
         </Text>
         
         {isSocialLogin && (
@@ -80,18 +70,19 @@ const PurposeSelectionScreen = ({ isPremiumUser }) => {
         <View style={styles.buttonContainer}>
           <Button
             title="집중력 개선"
-            onPress={() => handlePurposeSelect('집중력개선')} // 백엔드 enum 값과 일치
+            onPress={() => handlePurposeSelect('집중력개선')}
             style={styles.purposeButton}
+            primary={false} // 모든 버튼을 동일한 스타일로 맞추기 위해 primary={false}로 설정
           />
           <Button
             title="루틴 형성"
-            onPress={() => handlePurposeSelect('루틴형성')} // 백엔드 enum 값과 일치
+            onPress={() => handlePurposeSelect('루틴형성')}
             style={styles.purposeButton}
             primary={false}
           />
           <Button
             title="목표 관리"
-            onPress={() => handlePurposeSelect('목표관리')} // 백엔드 enum 값과 일치
+            onPress={() => handlePurposeSelect('목표관리')}
             style={styles.purposeButton}
             primary={false}
           />
@@ -111,11 +102,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 80,
+    paddingBottom: 40,
   },
   obooniCharacter: {
     width: 200,
     height: 200,
+    resizeMode: 'contain',
     marginBottom: 40,
   },
   purposeQuestion: {
